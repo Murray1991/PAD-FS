@@ -26,6 +26,13 @@
 #### How temporary/permanent failures are handled?
 * With the same anti-entropy protocol for replica synchronization
 
+#### Replicated architecture implementation
+Passive replication protocol: 
+* each client can communicate with every node for read/write an item x
+* if the client is not the primary server for that item, the client's request is forwarded to the server
+
+In case of node failures or network partitions, the election of the primary server is based on the partitioning of data through consistency hashing. This guarantees high-availability.
+
 
 
 
