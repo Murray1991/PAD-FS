@@ -2,20 +2,18 @@ package mcsn.pad.pad_fs;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.junit.Test;
 
 import junit.framework.Assert;
-import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.storage.remote.DatagramSocketStore;
 import mcsn.pad.pad_fs.storage.remote.Message;
+import mcsn.pad.pad_fs.transport.UDP;
 import voldemort.versioning.Versioned;
 
 public class DatagramSocketStoreTest {
@@ -37,24 +35,6 @@ public class DatagramSocketStoreTest {
 			this.addr = addr;
 			this.list = list;
 		}
-		
-		private Message receive(DatagramSocket socket) throws ClassNotFoundException, IOException {
-			
-			byte[] buf = new byte[socket.getReceiveBufferSize()];
-			DatagramPacket p = new DatagramPacket(buf, buf.length);
-			socket.receive(p);
-			
-			int packet_length = 0;
-			for (int i = 0; i < 4; i++) {
-				int shift = (4 - 1 - i) * 8;
-				packet_length += (buf[i] & 0x000000FF) << shift;
-			}
-			
-			Assert.assertEquals(true, (packet_length == (p.getLength()-4)));
-			byte[] bytes = Arrays.copyOfRange(buf, 4, p.getLength());
-		    Message m = (Message) Utils.convertFromBytes(bytes);
-		    return m;
-		}
 
 		@Override
 		public void run() {
@@ -67,7 +47,7 @@ public class DatagramSocketStoreTest {
 				
 				s = new DatagramSocket(addr);
 				for (int i=0; i < list.size(); i++ ) {
-					Message m = receive(s);
+					Message m = UDP.receive(s);
 					System.out.println("at " + i + ", received: " + m.value + " " + list.contains(m.value));
 					Assert.assertEquals("error", true, list.contains(m.value));
 				}
