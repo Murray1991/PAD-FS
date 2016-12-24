@@ -1,4 +1,5 @@
 package mcsn.pad.pad_fs.membership;
+
 /**
  * 
  * @author Leonardo Gazzarri
@@ -15,6 +16,22 @@ public class Member {
 		this.port = port;
 		this.heartbeat = hearbeat;
 		this.id = id;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+	    if (this == o)
+	        return true;
+	    if (o == null)
+	        return false;
+	    if (getClass() != o.getClass())
+	        return false;
+	    Member member = (Member) o;
+	    
+	    return this.host.equals(member.host) &&
+	    		this.port == member.port &&
+	    		this.heartbeat == member.heartbeat &&
+	    		this.id.equals(member.id);
 	}
 	
 	@Override
