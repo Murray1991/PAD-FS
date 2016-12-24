@@ -16,8 +16,6 @@ import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.transport.UDP;
 
 public class StorageManager extends Thread {
-	
-	private final static Logger LOGGER = Logger.getLogger(StorageManager.class.getName());
 
 	private DatagramSocket udpServer;
 	private InetAddress laddr;
