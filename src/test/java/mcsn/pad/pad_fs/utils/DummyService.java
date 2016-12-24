@@ -1,9 +1,9 @@
 package mcsn.pad.pad_fs.utils;
 
-import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.storage.IStorageService;
 
-public class DummyService implements IService {
+public class DummyService implements IStorageService {
 
 	@Override
 	public void start() {
@@ -24,7 +24,7 @@ public class DummyService implements IService {
 	@Override
 	public Message deliverMessage(Message msg) {
 		try { 
-			Thread.sleep(1000);
+			Thread.sleep(500);
 		} catch (InterruptedException e) {
 		}
 		return TestUtils.randomMessage(msg);
