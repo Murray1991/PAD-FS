@@ -26,6 +26,11 @@ public abstract class RemoteStore implements Store<Serializable, byte[]> {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public void remove(Serializable key){
+		// TODO
+	}
 
 	@Override
 	public Map<Serializable, Versioned<byte[]>> list(Iterable<Serializable> keys) {

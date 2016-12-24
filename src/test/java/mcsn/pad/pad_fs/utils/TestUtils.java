@@ -1,9 +1,10 @@
-package mcsn.pad.pad_fs;
+package mcsn.pad.pad_fs.utils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +14,25 @@ import org.json.JSONException;
 
 import it.cnr.isti.hpclab.consistent.ConsistentHasher;
 import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
+import mcsn.pad.pad_fs.Node;
+import mcsn.pad.pad_fs.message.Message;
 import voldemort.versioning.Versioned;
 
 public class TestUtils {
 
 	public static String nextSessionId(Random random) {
 	    return new BigInteger(100, random).toString(32);
+	}
+	
+	public static Message randomMessage(Message msg) {
+		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
+		return new Message(msg.type, msg.key, value);
+	}
+	
+	public static Message randomMessage(int type) {
+		String key = TestUtils.nextSessionId(new SecureRandom()); 
+		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
+		return new Message(type, key, value);
 	}
 	
 	public static void printBucketDistribution() {
@@ -76,5 +90,12 @@ public class TestUtils {
 		}
 		
 		return elements;
+	}
+
+	public static List<Message> getMessages(int type, int dim) {
+		List<Message> list = new ArrayList<>();
+		for (int i = 0; i < dim; i++)
+			list.add(randomMessage(type));
+		return list;
 	}
 }

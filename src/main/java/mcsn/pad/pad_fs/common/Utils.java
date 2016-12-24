@@ -7,9 +7,6 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.math.BigInteger;
-import java.security.SecureRandom;
-
 import com.google.common.base.Preconditions;
 
 import it.cnr.isti.hpclab.consistent.ConsistentHasher.BytesConverter;
@@ -20,7 +17,6 @@ public class Utils {
 	public static BytesConverter<Versioned<byte[]>> getVersionedObjToBytesConverter() {
 		
 		return new BytesConverter<Versioned<byte[]>>() {
-
 			@Override
 			public byte[] convert(Versioned<byte[]> data) {
 				Preconditions.checkNotNull(data);

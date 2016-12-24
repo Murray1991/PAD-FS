@@ -55,7 +55,6 @@ public class Configuration {
 	
 	public List<GossipMember> getGossipMembers() {
 		return settings.getGossipMembers();
-		
 	}
 	
 	public GossipSettings getGossipSettings() {

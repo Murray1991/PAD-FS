@@ -17,7 +17,12 @@ public class FileStore extends LocalStore {
 
 	private Path path;
 	
+	public FileStore(String name) {
+		super(name);
+	}
+ 	
 	public FileStore(Path path) throws IOException {
+		super(path.toString());
 		this.path = path;
 	}
 

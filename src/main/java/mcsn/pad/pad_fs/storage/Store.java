@@ -18,6 +18,8 @@ public interface Store<K,V> {
 	
 	public void put(K key, Versioned<V> value);
 	
+	public void remove(K key);
+	
 	public Map<K,Versioned<V>> list(Iterable<K> keys);
 	
 	public void close();

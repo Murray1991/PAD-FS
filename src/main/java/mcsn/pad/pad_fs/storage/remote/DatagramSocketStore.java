@@ -8,6 +8,8 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Map;
 
+import mcsn.pad.pad_fs.membership.Member;
+import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.transport.UDP;
 import voldemort.versioning.Versioned;
 
@@ -18,6 +20,10 @@ public class DatagramSocketStore extends RemoteStore {
     public DatagramSocketStore(String ipAddress, int port) throws SocketException, UnknownHostException {
 		this.addr = new InetSocketAddress(InetAddress.getByName(ipAddress), port);
 	}
+    
+    public DatagramSocketStore(Member member, int port) throws UnknownHostException {
+    	this.addr = new InetSocketAddress(InetAddress.getByName(member.host), port);
+    }
 	
 	public DatagramSocketStore(InetSocketAddress addr) {
 		this.addr = addr;

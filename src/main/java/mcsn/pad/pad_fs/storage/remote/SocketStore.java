@@ -32,4 +32,10 @@ public class SocketStore extends RemoteStore {
 		
 	}
 
+	@Override
+	public void remove(Serializable key) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

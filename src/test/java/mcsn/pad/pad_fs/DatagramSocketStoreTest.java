@@ -12,7 +12,7 @@ import org.junit.Test;
 
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.storage.remote.DatagramSocketStore;
-import mcsn.pad.pad_fs.storage.remote.Message;
+import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.transport.UDP;
 import voldemort.versioning.Versioned;
 

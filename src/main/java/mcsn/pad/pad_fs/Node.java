@@ -15,6 +15,7 @@ import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.membership.MembershipService;
 import mcsn.pad.pad_fs.storage.StorageService;
+import mcsn.pad.pad_fs.storage.local.DBStore;
 
 /**
  * 
@@ -59,8 +60,9 @@ public class Node
 		
 		services.add(membershipService);
 		
+		DBStore dbStore = new DBStore("thisthis");
 		StorageService storageService = 
-				new StorageService(membershipService);
+				new StorageService(membershipService, dbStore);
 		
 		services.add(storageService);
 		
