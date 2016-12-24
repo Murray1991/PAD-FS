@@ -3,26 +3,26 @@ package mcsn.pad.pad_fs.server;
 import java.net.InetAddress;
 
 import mcsn.pad.pad_fs.common.IService;
-import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.storage.IStorageService;
 
 public class ServerService implements IService {
 	
 	private ServerManager serverManager;
 	private boolean isRunning;
 	
-	public ServerService(IService storageService) {
+	public ServerService(IStorageService storageService) {
 		this(storageService, 8080, 0, null);
 	}
 	
-	public ServerService(IService storageService, int port) {
+	public ServerService(IStorageService storageService, int port) {
 		this(storageService, port, 0, null);
 	}
 	
-	public ServerService(IService storageService, int port, int backlog) {
+	public ServerService(IStorageService storageService, int port, int backlog) {
 		this(storageService, port, backlog, null);
 	}
 	
-	public ServerService(IService storageService, int port, int backlog, InetAddress bindAddr) {
+	public ServerService(IStorageService storageService, int port, int backlog, InetAddress bindAddr) {
 		this.serverManager = new ServerManager(storageService, port, backlog, bindAddr);
 	}
 
@@ -43,8 +43,4 @@ public class ServerService implements IService {
 		return isRunning;
 	}
 
-	@Override
-	public Message deliverMessage(Message msg) {
-		return null;
-	}
 }

@@ -5,15 +5,15 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.storage.IStorageService;
 
 public class ServerThread extends Thread {
 
 	private Socket socket;
-	private IService storageService;
+	private IStorageService storageService;
 	
-	public ServerThread(Socket socket, IService storageService) {
+	public ServerThread(Socket socket, IStorageService storageService) {
 		this.socket = socket;
 		this.storageService = storageService;
 	}
