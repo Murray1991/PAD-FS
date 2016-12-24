@@ -5,27 +5,15 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import mcsn.pad.pad_fs.common.IService;
+import mcsn.pad.pad_fs.storage.IStorageService;
 
 public class ServerManager extends Thread {
 
-	private IService storageService;
+	private IStorageService storageService;
 	private ServerSocket serverSocket;
 	private boolean listening;
-	
-	public ServerManager(IService storageService) {
-		this(storageService, 8080, 0, null);
-	}
-	
-	public ServerManager(IService storageService, int port) {
-		this(storageService, port, 0, null);
-	}
-	
-	public ServerManager(IService storageService, int port, int backlog) {
-		this(storageService, port, backlog, null);
-	}
 
-	public ServerManager(IService storageService, int port, int backlog, InetAddress bindAddr ) {
+	public ServerManager(IStorageService storageService, int port, int backlog, InetAddress bindAddr ) {
 		try {
 			this.storageService = storageService;
 			this.serverSocket = new ServerSocket(port, backlog, bindAddr);
