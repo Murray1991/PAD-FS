@@ -9,8 +9,6 @@ import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
-
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.transport.UDP;
