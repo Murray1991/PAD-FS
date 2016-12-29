@@ -3,7 +3,6 @@ package mcsn.pad.pad_fs;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,10 +18,10 @@ import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.utils.DummyLocalStore;
 import mcsn.pad.pad_fs.utils.TestUtils;
 
-public class StorageServiceTest {
+public class StorageManagerTest {
 
 	@Test
-	public void test() throws FileNotFoundException, JSONException, IOException, InterruptedException {
+	public void test() throws InterruptedException, FileNotFoundException, JSONException, IOException {
 		
 		String filename = this.getClass().getResource("/gossip.conf").getFile();
 		File configFile = new File(filename);
@@ -60,16 +59,6 @@ public class StorageServiceTest {
 			sServices.get(idx-1).deliverMessage(msg);
 		}
 		
-		System.out.println("Begin assertions..." );
-		for (Message m : messages ) {
-			Assert.assertTrue( existKey(m.key, lStores) );
-		}
-		System.out.println("--- keys exist");
-		
-		int delta = 100000; //100 sec
-		System.out.println("Wait " + delta/1000 + " seconds...");
-		Thread.sleep(delta);
-		
 		System.out.println("Shutdown the services...");
 		for ( StorageService ss : sServices ) {
 			ss.shutdown();
@@ -79,24 +68,16 @@ public class StorageServiceTest {
 			ms.shutdown();
 		}
 		
+		System.out.println("Begin assertions...");
 		for (Message m : messages ) {
-			int stores = countKey(m.key, lStores);
-			Assert.assertTrue( "replica degree for " + m.key + " : " + stores, stores == dim );
+			boolean b = false;
+			for ( LocalStore l : lStores ) {
+				b = b || l.get(m.key) != null;
+			}
+			Assert.assertTrue(b);
 		}
-		
-		System.out.println("--- key replicated in all the stores");
-		
-	}
-	
-	public int countKey (Serializable key, List<LocalStore> lStores) {
-		int count = 0;
-		for ( LocalStore l : lStores )
-			count  += (l.get(key) != null ? 1 : 0);
-		return count;
-	}
-	
-	public boolean existKey (Serializable key, List<LocalStore> lStores) {
-		return countKey (key, lStores) != 0;
+
+		System.out.println("--- All OK");
 	}
 
 }
