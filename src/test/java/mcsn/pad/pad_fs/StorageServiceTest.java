@@ -13,6 +13,7 @@ import org.junit.Test;
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
 import mcsn.pad.pad_fs.membership.MembershipService;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -53,15 +54,15 @@ public class StorageServiceTest {
 		
 		int num = 500;
 		System.out.println("Build " + num + " messages and deliver them");
-		List<Message> messages = TestUtils.getMessages(Message.PUT, num);
-		for ( Message msg : messages) {
+		List<ClientMessage> messages = TestUtils.getMessages(Message.PUT, num);
+		for ( ClientMessage msg : messages) {
 			int idx = (Math.abs(msg.key.hashCode()) % dim) + 1;
-			System.out.println("--- Message: " + msg + " to storageService-" + idx);
+			System.out.println("--- ClientMessage: " + msg + " to storageService-" + idx);
 			sServices.get(idx-1).deliverMessage(msg);
 		}
 		
 		System.out.println("Begin assertions..." );
-		for (Message m : messages ) {
+		for (ClientMessage m : messages ) {
 			Assert.assertTrue( existKey(m.key, lStores) );
 		}
 		System.out.println("--- keys exist");
@@ -79,7 +80,7 @@ public class StorageServiceTest {
 			ms.shutdown();
 		}
 		
-		for (Message m : messages ) {
+		for (ClientMessage m : messages ) {
 			int stores = countKey(m.key, lStores);
 			Assert.assertTrue( "replica degree for " + m.key + " : " + stores, stores == dim );
 		}

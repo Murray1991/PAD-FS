@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.PushMessage;
+import mcsn.pad.pad_fs.message.ReplyMessage;
 import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.transport.UDP;
@@ -24,7 +26,7 @@ public class PushHandler implements Runnable {
 
 	@Override
 	public void run() {
-		Message msg = pushMsg.msg;
+		PushMessage msg = (PushMessage) pushMsg.msg;
 		Versioned<byte[]> v1 = msg.value;
 		Versioned<byte[]> v2 = localStore.get(msg.key);
 		//put v1 iff v1 > v2
@@ -36,7 +38,7 @@ public class PushHandler implements Runnable {
 		} else if (occ == -1) {
 			try {
 				//send REPLY msg to raddr
-				UDP.send(new Message(Message.REPLY, msg.key, v2), raddr);
+				UDP.send(new ReplyMessage(msg.key, v2), raddr);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

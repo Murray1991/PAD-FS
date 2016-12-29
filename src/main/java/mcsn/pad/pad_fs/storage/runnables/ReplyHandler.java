@@ -1,6 +1,6 @@
 package mcsn.pad.pad_fs.storage.runnables;
 
-import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.ReplyMessage;
 import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.Occurred;
@@ -18,7 +18,7 @@ public class ReplyHandler implements Runnable {
 
 	@Override
 	public void run() {
-		Message msg = replyMsg.msg;
+		ReplyMessage msg = (ReplyMessage) replyMsg.msg;
 		Versioned<byte[]> v1 = msg.value;
 		Versioned<byte[]> v2 = localStore.get(msg.key);
 		Occurred occ = v1.getVersion().compare(v2.getVersion());

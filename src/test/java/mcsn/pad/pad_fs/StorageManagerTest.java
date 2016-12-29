@@ -12,6 +12,7 @@ import org.junit.Test;
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
 import mcsn.pad.pad_fs.membership.MembershipService;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -52,8 +53,8 @@ public class StorageManagerTest {
 		
 		int num = 500;
 		System.out.println("Build " + num + " messages and deliver them");
-		List<Message> messages = TestUtils.getMessages(Message.PUT, num);
-		for ( Message msg : messages) {
+		List<ClientMessage> messages = TestUtils.getMessages(Message.PUT, num);
+		for ( ClientMessage msg : messages) {
 			int idx = (Math.abs(msg.key.hashCode()) % dim) + 1;
 			System.out.println("--- Message: " + msg + " to storageService-" + idx);
 			sServices.get(idx-1).deliverMessage(msg);
@@ -69,7 +70,7 @@ public class StorageManagerTest {
 		}
 		
 		System.out.println("Begin assertions...");
-		for (Message m : messages ) {
+		for (ClientMessage m : messages ) {
 			boolean b = false;
 			for ( LocalStore l : lStores ) {
 				b = b || l.get(m.key) != null;

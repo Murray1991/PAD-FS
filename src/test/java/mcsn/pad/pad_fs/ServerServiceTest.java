@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import org.junit.Test;
 
 import junit.framework.Assert;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.server.ServerService;
 import mcsn.pad.pad_fs.utils.DummyService;
@@ -34,8 +35,8 @@ public class ServerServiceTest {
 		// start sequentially tests
 		for ( Versioned<byte[]> e : list ) {
 			Socket sck = new Socket(addr, 8080);
-			Message sendMsg = new Message(1, TestUtils.nextSessionId(new SecureRandom()), e);
-			Message rcvMsg = request(sendMsg, sck);
+			ClientMessage sendMsg = new ClientMessage(1, TestUtils.nextSessionId(new SecureRandom()), e);
+			ClientMessage rcvMsg = request(sendMsg, sck);
 			boolean b = 
 					sendMsg.key.equals(rcvMsg.key) &&
 					sendMsg.type == rcvMsg.type && 
@@ -48,12 +49,12 @@ public class ServerServiceTest {
 
 	}
 	
-	private Message request(Message sendMsg, Socket sck) throws IOException, ClassNotFoundException {
+	private ClientMessage request(Message sendMsg, Socket sck) throws IOException, ClassNotFoundException {
 		ObjectOutputStream oos = new ObjectOutputStream(sck.getOutputStream());
 		oos.writeObject(sendMsg);
 		
 		ObjectInputStream ois = new ObjectInputStream(sck.getInputStream());
-		Message msg = (Message) ois.readObject();
+		ClientMessage msg = (ClientMessage) ois.readObject();
 		
 		ois.close();
 		oos.close();

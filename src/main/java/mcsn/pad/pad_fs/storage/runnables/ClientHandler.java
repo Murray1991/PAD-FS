@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 
-import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.transport.UDP;
@@ -24,7 +24,7 @@ public class ClientHandler implements Runnable {
 	@Override
 	public void run() {
 		try {
-			Message msg = storageService.deliverMessage(srcMsg.msg);
+			ClientMessage msg = storageService.deliverMessage( (ClientMessage) srcMsg.msg);
 			DatagramSocket socket = new DatagramSocket();
 			UDP.send(msg, socket, raddr);
 			socket.close();

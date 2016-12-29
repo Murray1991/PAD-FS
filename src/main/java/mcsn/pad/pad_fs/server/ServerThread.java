@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.storage.IStorageService;
 
@@ -22,10 +23,10 @@ public class ServerThread extends Thread {
 	public void run() {
 		ObjectInputStream ois = null;
 		ObjectOutputStream oos = null;
-		Message msg = null;
+		ClientMessage msg = null;
 		try {
 			ois = new ObjectInputStream(socket.getInputStream()); //TODO use Future and timeout
-			msg = (Message) ois.readObject();
+			msg = (ClientMessage) ois.readObject();
 			if (msg != null) {
 				msg = storageService.deliverMessage(msg);
 				oos = new ObjectOutputStream(socket.getOutputStream());

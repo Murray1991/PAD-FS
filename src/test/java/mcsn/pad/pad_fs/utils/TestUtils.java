@@ -15,6 +15,7 @@ import org.json.JSONException;
 import it.cnr.isti.hpclab.consistent.ConsistentHasher;
 import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
 import mcsn.pad.pad_fs.Node;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import voldemort.versioning.Versioned;
 
@@ -24,15 +25,15 @@ public class TestUtils {
 	    return new BigInteger(100, random).toString(32);
 	}
 	
-	public static Message randomMessage(Message msg) {
+	public static ClientMessage randomMessage(ClientMessage msg) {
 		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
-		return new Message(msg.type, msg.key, value);
+		return new ClientMessage(msg.type, msg.key, value);
 	}
 	
-	public static Message randomMessage(int type) {
+	public static ClientMessage randomMessage(int type) {
 		String key = TestUtils.nextSessionId(new SecureRandom()); 
 		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
-		return new Message(type, key, value);
+		return new ClientMessage(type, key, value);
 	}
 	
 	public static void printBucketDistribution() {
@@ -92,8 +93,8 @@ public class TestUtils {
 		return elements;
 	}
 
-	public static List<Message> getMessages(int type, int dim) {
-		List<Message> list = new ArrayList<>();
+	public static List<ClientMessage> getMessages(int type, int dim) {
+		List<ClientMessage> list = new ArrayList<>();
 		for (int i = 0; i < dim; i++)
 			list.add(randomMessage(type));
 		return list;

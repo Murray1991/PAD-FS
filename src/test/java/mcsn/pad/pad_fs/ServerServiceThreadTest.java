@@ -18,6 +18,7 @@ import java.util.concurrent.Future;
 import org.junit.Test;
 
 import junit.framework.Assert;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.server.ServerService;
 import mcsn.pad.pad_fs.utils.DummyService;
@@ -42,12 +43,12 @@ public class ServerServiceThreadTest {
 		       new ExecutorCompletionService<Boolean>(executor);
 		
 		for ( Versioned<byte[]> e : list) {
-			Message sendMsg = new Message(1, TestUtils.nextSessionId(new SecureRandom()), e);
+			ClientMessage sendMsg = new ClientMessage(1, TestUtils.nextSessionId(new SecureRandom()), e);
 			completionService.submit(new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
 					Socket sck = new Socket(addr, 8080);
-					Message rcvMsg = request(sendMsg, sck);
+					ClientMessage rcvMsg = request(sendMsg, sck);
 					sck.close();
 					boolean b = 
 							sendMsg.key.equals(rcvMsg.key) &&
@@ -73,12 +74,12 @@ public class ServerServiceThreadTest {
 		server.shutdown();
 	}
 	
-	private Message request(Message sendMsg, Socket sck) throws IOException, ClassNotFoundException {
+	private ClientMessage request(Message sendMsg, Socket sck) throws IOException, ClassNotFoundException {
 		ObjectOutputStream oos = new ObjectOutputStream(sck.getOutputStream());
 		oos.writeObject(sendMsg);
 		
 		ObjectInputStream ois = new ObjectInputStream(sck.getInputStream());
-		Message msg = (Message) ois.readObject();
+		ClientMessage msg = (ClientMessage) ois.readObject();
 		
 		ois.close();
 		oos.close();

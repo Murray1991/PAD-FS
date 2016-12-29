@@ -1,4 +1,4 @@
-package mcsn.pad.pad_fs.storage;
+package mcsn.pad.pad_fs.storage.local;
 
 import voldemort.versioning.Versioned;
 

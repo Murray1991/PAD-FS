@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import mcsn.pad.pad_fs.membership.IMembershipService;
 import mcsn.pad.pad_fs.membership.Member;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.transport.UDP;
@@ -54,10 +55,10 @@ public class StorageService implements IStorageService {
 
 	//TODO maybe better name is "HandleRequest"
 	@Override
-	public Message deliverMessage(Message msg) {
+	public ClientMessage deliverMessage(ClientMessage msg) {
 		Member coordinator = membershipService.getCoordinator((String) msg.key); //TODO check
 		Member myself = membershipService.getMyself();
-		Message rcvMsg = null;
+		ClientMessage rcvMsg = null;
 		
 		if (coordinator.equals(myself)) {
 			resolveMessage(msg);
@@ -66,7 +67,7 @@ public class StorageService implements IStorageService {
 			try {
 				DatagramSocket socket = new DatagramSocket();
 				UDP.send(msg, socket, new InetSocketAddress(coordinator.host, storageManagerPort)); 
-				rcvMsg = UDP.receive(socket); 
+				rcvMsg = (ClientMessage) UDP.receive(socket); 
 				//TODO check if rcvMsg is correct
 				//TODO what if I don't receive the message? Do something with timeouts?
 				socket.close();
@@ -82,7 +83,7 @@ public class StorageService implements IStorageService {
 		return "[StorageService@"+ this.membershipService.getMyself().id + "]";
 	}
 	
-	private void resolveMessage(Message msg) {
+	private void resolveMessage(ClientMessage msg) {
 		msg.status = Message.UNKNOWN;
 		switch (msg.type) {
 			case Message.GET:

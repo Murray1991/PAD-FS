@@ -1,6 +1,6 @@
 package mcsn.pad.pad_fs.utils;
 
-import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 
 public class DummyService implements IStorageService {
@@ -22,7 +22,7 @@ public class DummyService implements IStorageService {
 	}
 
 	@Override
-	public Message deliverMessage(Message msg) {
+	public ClientMessage deliverMessage(ClientMessage msg) {
 		try { 
 			Thread.sleep(500);
 		} catch (InterruptedException e) {
