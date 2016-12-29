@@ -26,8 +26,8 @@ public class Member {
 	        return false;
 	    if (getClass() != o.getClass())
 	        return false;
-	    Member member = (Member) o;
 	    
+	    Member member = (Member) o;
 	    return this.host.equals(member.host) &&
 	    		this.port == member.port &&
 	    		this.heartbeat == member.heartbeat &&

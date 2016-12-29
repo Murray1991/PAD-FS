@@ -1,8 +1,8 @@
 package mcsn.pad.pad_fs.utils;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.Versioned;
@@ -32,9 +32,8 @@ public class DummyLocalStore extends LocalStore {
 	}
 
 	@Override
-	public Map<Serializable, Versioned<byte[]>> list(Iterable<Serializable> keys) {
-		// TODO Auto-generated method stub
-		return null;
+	public Iterable<Serializable> list() {
+		return hmap.keySet();
 	}
 
 	@Override

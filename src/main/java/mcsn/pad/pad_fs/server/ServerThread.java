@@ -20,7 +20,6 @@ public class ServerThread extends Thread {
 
 	@Override
 	public void run() {
-		System.out.println("-- Thread "  + this.getId() + ": started");
 		ObjectInputStream ois = null;
 		ObjectOutputStream oos = null;
 		Message msg = null;

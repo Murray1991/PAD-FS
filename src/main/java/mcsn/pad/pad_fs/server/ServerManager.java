@@ -24,7 +24,6 @@ public class ServerManager extends Thread {
 	
 	@Override
 	public synchronized void start() {
-		System.out.println("-- ServerManager: start");
 		listening = true;
 		super.start();
 	}
@@ -34,24 +33,24 @@ public class ServerManager extends Thread {
 		while (listening) {
 			Socket sck = null;
 			try {
-				System.out.println("-- ServerManager: accept...");
 				sck = serverSocket.accept();
 			} catch (IOException e) {
-				//e.printStackTrace();
+				e.printStackTrace();
 			}
-			if (sck != null)
-				new ServerThread(sck, storageService).start();	//TODO maybe use executor and a fixed thread pool
+			if (sck != null) {
+				//TODO maybe use executor with a fixed thread pool
+				new ServerThread(sck, storageService).start();
+			}			
 		}
 	}
 	
 	@Override
 	public void interrupt() {
-		System.out.println("-- ServerManager: interrupt");
 		try {
 			listening = false;
 			serverSocket.close();
 		} catch (IOException e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 		}
 		super.interrupt();
 	}

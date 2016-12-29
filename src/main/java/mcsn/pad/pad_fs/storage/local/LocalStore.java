@@ -1,12 +1,10 @@
 package mcsn.pad.pad_fs.storage.local;
 
 import java.io.Serializable;
-import java.util.Map;
-
-import mcsn.pad.pad_fs.storage.Store;
+import mcsn.pad.pad_fs.storage.local.IStore;
 import voldemort.versioning.Versioned;
 
-public abstract class LocalStore implements Store<Serializable, byte[]> {
+public abstract class LocalStore implements IStore<Serializable, byte[]> {
 	
 	private String name;
 	
@@ -31,7 +29,7 @@ public abstract class LocalStore implements Store<Serializable, byte[]> {
 	}
 
 	@Override
-	public Map<Serializable, Versioned<byte[]>> list(Iterable<Serializable> keys) {
+	public Iterable<Serializable> list() {
 		// TODO Auto-generated method stub
 		return null;
 	}

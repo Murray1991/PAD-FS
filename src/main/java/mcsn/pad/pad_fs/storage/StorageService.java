@@ -3,7 +3,6 @@ package mcsn.pad.pad_fs.storage;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
 import java.util.logging.Logger;
 
 import mcsn.pad.pad_fs.membership.IMembershipService;
@@ -18,6 +17,7 @@ public class StorageService implements IStorageService {
 	
 	private boolean isRunning;
 	private StorageManager storageManager;
+	private ReplicaManager replicaManager;
 	private IMembershipService membershipService;
 	private LocalStore localStore;
 	private final int storageManagerPort = 3000; //TODO
@@ -26,7 +26,8 @@ public class StorageService implements IStorageService {
 		this.membershipService = membershipService;
 		this.localStore = localStore;
 		String host = membershipService.getMyself().host;
-		storageManager = new StorageManager(this, host, storageManagerPort);
+		storageManager = new StorageManager(this, localStore, host, storageManagerPort);
+		replicaManager = new ReplicaManager(membershipService, localStore, 1000, host, storageManagerPort);
 	}
 
 	@Override
@@ -34,6 +35,7 @@ public class StorageService implements IStorageService {
 		LOGGER.info(this + " -- start");
 		isRunning = true;
 		storageManager.start();
+		replicaManager.start();
 	}
 	
 	@Override
@@ -42,6 +44,7 @@ public class StorageService implements IStorageService {
 		isRunning = false;
 		localStore.close(); //TODO check
 		storageManager.interrupt();
+		replicaManager.interrupt();
 	}
 
 	@Override
@@ -57,11 +60,9 @@ public class StorageService implements IStorageService {
 		Message rcvMsg = null;
 		
 		if (coordinator.equals(myself)) {
-			//System.out.println(this + " -- coordinator for " + msg.key);
 			resolveMessage(msg);
 			rcvMsg = msg;
 		} else {
-			//System.out.println(this + " -- send " + msg.key + " to the coordinator " + coordinator.host + ":" + storageManagerPort);
 			try {
 				DatagramSocket socket = new DatagramSocket();
 				UDP.send(msg, socket, new InetSocketAddress(coordinator.host, storageManagerPort)); 
@@ -69,15 +70,16 @@ public class StorageService implements IStorageService {
 				//TODO check if rcvMsg is correct
 				//TODO what if I don't receive the message? Do something with timeouts?
 				socket.close();
-			} catch (SocketException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
+			} catch (IOException | ClassNotFoundException e) {
 				e.printStackTrace();
 			}
 		}
 		return rcvMsg;
+	}
+	
+	@Override
+	public String toString() {
+		return "[StorageService@"+ this.membershipService.getMyself().id + "]";
 	}
 	
 	private void resolveMessage(Message msg) {
@@ -100,9 +102,5 @@ public class StorageService implements IStorageService {
 			}
 		if (msg.status == Message.UNKNOWN)
 			msg.status = Message.SUCCESS;
-	}
-	
-	public String toString() {
-		return "[StorageService@"+ this.membershipService.getMyself().id + "]";
 	}
 }

@@ -3,14 +3,18 @@ package mcsn.pad.pad_fs.storage;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.message.SourceMessage;
+import mcsn.pad.pad_fs.storage.local.LocalStore;
+import mcsn.pad.pad_fs.storage.runnables.ClientHandler;
+import mcsn.pad.pad_fs.storage.runnables.PushHandler;
+import mcsn.pad.pad_fs.storage.runnables.ReplyHandler;
 import mcsn.pad.pad_fs.transport.UDP;
 
 public class StorageManager extends Thread {
@@ -21,10 +25,14 @@ public class StorageManager extends Thread {
 	private final AtomicBoolean isRunning;
 	private final IStorageService storageService;
 	private final ExecutorService taskPool;
+	private final LocalStore localStore;
 	
-	public StorageManager(IStorageService storageService, String host, int port) {
+	public StorageManager(IStorageService storageService, LocalStore localStore, String host, int port) {
 		this.storageService = storageService;
-		taskPool = Executors.newCachedThreadPool();
+		this.localStore		= localStore;
+		
+		//TODO check the "parallelism degree"
+		taskPool = Executors.newFixedThreadPool(50);
 		isRunning = new AtomicBoolean(true);
 		
 		try {
@@ -40,25 +48,31 @@ public class StorageManager extends Thread {
 	public void run() {
 		while (isRunning.get()) {
 			try {
-				final SourceMessage srcMsg = UDP.srcReceive(udpServer);
-				final InetSocketAddress raddr = new InetSocketAddress(srcMsg.addr, srcMsg.port);
-				taskPool.execute(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							Message msg = storageService.deliverMessage(srcMsg.msg);
-							DatagramSocket socket = new DatagramSocket();
-							UDP.send(msg, socket, raddr);
-							socket.close();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-				});
+				SourceMessage srcMsg = UDP.srcReceive(udpServer);
+				taskPool.execute(getHandler(srcMsg));
 			} catch (ClassNotFoundException | IOException e) {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	private Runnable getHandler(SourceMessage srcMsg) {
+		int type = srcMsg.msg.type;
+		switch (type) {
+		case Message.GET:
+		case Message.PUT:
+		case Message.REMOVE:
+		case Message.LIST:
+			return new ClientHandler(srcMsg, storageService);
+		case Message.PUSH:
+			return new PushHandler(srcMsg, localStore);
+		case Message.REPLY:
+			return new ReplyHandler(srcMsg, localStore);
+		default:
+			System.err.println("Bad srcMsg type format: " + type);
+			break;
+		}
+		return null;
 	}
 	
 	@Override

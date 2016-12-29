@@ -78,6 +78,7 @@ public class MembershipService implements IMembershipService {
 	
 	@Override
 	public List<Member> getPreferenceList() throws InterruptedException {
+		//TODO do this with virtual nodes and a degree factor
 		ConsistentHasher<Member, String> cHasher = getConsistentHasher("a");
 		List<Member> sortedBuckets = new ArrayList<Member>();
 		Map<Member, List<String>> map;

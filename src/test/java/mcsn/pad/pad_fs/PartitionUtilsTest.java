@@ -12,7 +12,7 @@ import org.junit.Test;
 
 import it.cnr.isti.hpclab.consistent.ConsistentHasher;
 import junit.framework.Assert;
-import mcsn.pad.pad_fs.partitioning.PartitionUtils;
+import mcsn.pad.pad_fs.membership.PartitionUtils;
 import mcsn.pad.pad_fs.utils.TestUtils;
 
 public class PartitionUtilsTest {
