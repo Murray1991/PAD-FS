@@ -31,19 +31,4 @@ public class Message implements Serializable {
 	public int type;
 	
 	public int status;
-
-	public Serializable key;
-
-	public Versioned<byte[]> value;
-	
-	public Message(int type, Serializable key, Versioned<byte[]> value) {
-		this.type = type;
-		this.key = key;
-		this.value = value;
-	}
- 
-	@Override
-	public String toString() {
-		return "type: " + type + " ; key: " + key.toString() + " ; value: " + value.toString();
-	}
 }
