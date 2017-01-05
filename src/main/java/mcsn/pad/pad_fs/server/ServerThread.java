@@ -6,7 +6,6 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 import mcsn.pad.pad_fs.message.ClientMessage;
-import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.storage.IStorageService;
 
 public class ServerThread extends Thread {
