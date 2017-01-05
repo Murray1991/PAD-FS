@@ -9,6 +9,14 @@ import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.transport.UDP;
 
+/**
+ * 
+ * @author Leonardo Gazzarri
+ *
+ * It handles a client (put, get, remove, list) message.
+ * The receiver of the message handles the client request calling
+ * the "deliverMessage" method of the running storage service
+ */
 public class ClientHandler implements Runnable {
 	
 	final private SourceMessage srcMsg;
