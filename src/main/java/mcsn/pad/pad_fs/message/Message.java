@@ -2,7 +2,6 @@ package mcsn.pad.pad_fs.message;
 
 import java.io.Serializable;
 
-import voldemort.versioning.Versioned;
 
 public class Message implements Serializable {
 
