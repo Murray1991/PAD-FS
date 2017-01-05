@@ -3,23 +3,139 @@ package mcsn.pad.pad_fs.utils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Vector;
 
 import org.json.JSONException;
 
 import it.cnr.isti.hpclab.consistent.ConsistentHasher;
 import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
 import mcsn.pad.pad_fs.Node;
+import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.message.ClientMessage;
-import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.storage.local.LocalStore;
+import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
 
 public class TestUtils {
+	
+	/**
+     * getClock(1,1,2,2,2) means a clock that has two writes on node 1 and 3
+     */
+    public static VectorClock getClock(int... nodes) {
+        VectorClock clock = new VectorClock();
+        increment(clock, nodes);
+        return clock;
+    }
+    
+    /**
+     * Record events for the given sequence of nodes
+     */
+    public static void increment(VectorClock clock, int... nodes) {
+        for(int n: nodes)
+            clock.incrementVersion((short) n, clock.getTimestamp());
+    }
+    
+    /**
+     * Return Versioned byte array with a sequence of node events
+     */
+    public static Versioned<byte[]> getVersioned(byte[] value, int... nodes) {
+        return new Versioned<byte[]>(value, getClock(nodes));
+    }
+    
+    /**
+     * Return Versioned byte array without the sequence of node events
+     */
+    public static Versioned<byte[]> getVersioned(byte[] value) {
+        return new Versioned<byte[]>(value);
+    }
+    
+    /**
+     * Return Versioned Integer object
+     */
+    public static Versioned<Integer> getVersioned(Integer value, int... versionIncrements) {
+        return new Versioned<Integer>(value, getClock(versionIncrements));
+    }
+    
+    /**
+     * It is used for the randomString() method
+     */
+    private static Random random;
+    
+    /**
+     * Return random String object
+     */
+    public static String getRandomString() {
+    	if (random == null)
+    		random = new Random();
+    	return new BigInteger(1000, random).toString(32);
+    }
+    
+    /**
+     * Start Services
+     */
+    public static void startServices(List<IService> services) {
+    	for (IService service : services)
+    		service.start();
+    }
+    
+    /**
+     * Shutdown Services
+     */
+    public static void shutdownServices(List<IService> services) {
+    	for (IService service : services)
+    		service.shutdown();
+    }
+    
+    /**
+     * Tell if the key exists in at least one of the Local Stores
+     */
+    public static boolean existKey (Serializable key, List<LocalStore> lStores) {
+		return countKey (key, lStores) != 0;
+	}
+    
+    /**
+     * Count in how many Local Stores the key is stored
+     */
+    public static int countKey (Serializable key, List<LocalStore> lStores) {
+		int count = 0;
+		for ( LocalStore l : lStores )
+			count  += (l.get(key) != null ? 1 : 0);
+		return count;
+	}
+    
+    /**
+     * Return an iterable collection of values for each local store
+     */
+    public static Iterable<Versioned<byte[]>> getValues (Serializable key, List<LocalStore> lStores) {
+		Vector<Versioned<byte[]>> values = new Vector<Versioned<byte[]>>();
+		for ( LocalStore l : lStores )
+			values.add(l.get(key));
+		return values;
+	}
+    
+    /**
+     * Check if the content of versioned items is equal to the expected one
+     */
+    public static boolean checkValues (Iterable<Versioned<byte[]>> values, Versioned<byte[]> expected) {
+		Iterator<Versioned<byte[]>> itValue = values.iterator();
+		while (itValue.hasNext()) {
+			Versioned<byte[]> curr = itValue.next();
+			if ( ! Arrays.equals(expected.getValue(), curr.getValue()) ) {
+				System.err.println("Expected value is different!!");
+				return false;
+			}
+		}
+		return true;
+	}
 
 	public static String nextSessionId(Random random) {
 	    return new BigInteger(100, random).toString(32);

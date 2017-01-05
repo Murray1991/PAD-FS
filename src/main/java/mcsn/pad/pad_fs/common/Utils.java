@@ -10,6 +10,8 @@ import java.io.ObjectOutputStream;
 import com.google.common.base.Preconditions;
 
 import it.cnr.isti.hpclab.consistent.ConsistentHasher.BytesConverter;
+import voldemort.versioning.Occurred;
+import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
 
 public class Utils {
@@ -47,4 +49,32 @@ public class Utils {
 	    } 
 	}
 	
+	public static <T> int compare(Versioned<T> v1, Versioned<T> v2) {
+		if (v2 == null)
+			return 1;
+		VectorClock vc1 = (VectorClock) v1.getVersion();
+		VectorClock vc2 = (VectorClock) v2.getVersion();
+		Occurred occurr = vc1.compare(vc2);
+		if (occurr == Occurred.BEFORE && !vc1.equals(vc2)) {
+			return -1;
+		}
+		if (occurr == Occurred.AFTER) {
+			return 1;
+		}
+		if (occurr == Occurred.CONCURRENTLY)
+			System.out.println("-- Concurrency case...");
+		return 0;	//case concurrency or vc1.equals(vc2)
+	}
+	
+	public static <T> int compareTimestamps(Versioned<T> v1, Versioned<T> v2) {
+		if (v2 == null)
+			return 1;
+		long t1 = ((VectorClock) v1.getVersion()).getTimestamp();
+		long t2 = ((VectorClock) v2.getVersion()).getTimestamp();
+		if (t1 < t2)
+			return -1;
+		if (t1 > t2)
+			return 1;
+		return 0;
+	}
 }
