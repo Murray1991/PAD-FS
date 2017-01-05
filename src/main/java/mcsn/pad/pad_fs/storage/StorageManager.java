@@ -11,25 +11,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.message.SourceMessage;
-import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.storage.runnables.ClientHandler;
+import mcsn.pad.pad_fs.storage.runnables.PullHandler;
 import mcsn.pad.pad_fs.storage.runnables.PushHandler;
 import mcsn.pad.pad_fs.storage.runnables.ReplyHandler;
-import mcsn.pad.pad_fs.transport.UDP;
+import mcsn.pad.pad_fs.transport.Transport;
 
 public class StorageManager extends Thread {
 
 	private DatagramSocket udpServer;
 	private InetAddress laddr;
+	private int lport;
 	
 	private final AtomicBoolean isRunning;
 	private final IStorageService storageService;
 	private final ExecutorService taskPool;
-	private final LocalStore localStore;
 	
-	public StorageManager(IStorageService storageService, LocalStore localStore, String host, int port) {
+	public StorageManager(IStorageService storageService, String host, int port) {
 		this.storageService = storageService;
-		this.localStore		= localStore;
 		
 		//TODO check the "parallelism degree"
 		taskPool = Executors.newFixedThreadPool(50);
@@ -37,18 +36,28 @@ public class StorageManager extends Thread {
 		
 		try {
 			//Make udpServer great again
+			lport = port;
 			laddr = InetAddress.getByName(host);
 			udpServer = new DatagramSocket(port, laddr);
 		} catch (SocketException | UnknownHostException e) {
 			e.printStackTrace();
 		}
 	}
+	
+	public int getStoragePort() {
+		return lport;
+	}
+	
+	public InetAddress getStorageAddress() {
+		return laddr;
+	}
 
 	@Override
 	public void run() {
+		Transport transport = new Transport(udpServer, storageService);
 		while (isRunning.get()) {
 			try {
-				SourceMessage srcMsg = UDP.srcReceive(udpServer);
+				SourceMessage srcMsg = transport.receive(); //UDP.srcReceive(udpServer);
 				taskPool.execute(getHandler(srcMsg));
 			} catch (ClassNotFoundException | IOException e) {
 				e.printStackTrace();
@@ -65,14 +74,21 @@ public class StorageManager extends Thread {
 		case Message.LIST:
 			return new ClientHandler(srcMsg, storageService);
 		case Message.PUSH:
-			return new PushHandler(srcMsg, localStore);
+			return new PushHandler(srcMsg, storageService);
+		case Message.PULL:
+			return new PullHandler(srcMsg, storageService);
 		case Message.REPLY:
-			return new ReplyHandler(srcMsg, localStore);
+			return new ReplyHandler(srcMsg, storageService);
 		default:
 			System.err.println("Bad srcMsg type format: " + type);
 			break;
 		}
 		return null;
+	}
+	
+	@Override
+	public String toString() {
+		return "[StorageManager@"+laddr+":"+lport;
 	}
 	
 	@Override

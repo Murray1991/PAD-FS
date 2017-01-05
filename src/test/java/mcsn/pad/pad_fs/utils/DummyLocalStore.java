@@ -1,7 +1,6 @@
 package mcsn.pad.pad_fs.utils;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import mcsn.pad.pad_fs.storage.local.LocalStore;
