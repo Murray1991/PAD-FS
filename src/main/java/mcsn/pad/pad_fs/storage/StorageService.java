@@ -2,15 +2,19 @@ package mcsn.pad.pad_fs.storage;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.logging.Logger;
 
+import junit.framework.Assert;
 import mcsn.pad.pad_fs.membership.IMembershipService;
 import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
-import mcsn.pad.pad_fs.transport.UDP;
+import mcsn.pad.pad_fs.transport.Transport;
+import voldemort.versioning.VectorClock;
+import voldemort.versioning.Versioned;
 
 public class StorageService implements IStorageService {
 	
@@ -23,12 +27,23 @@ public class StorageService implements IStorageService {
 	private LocalStore localStore;
 	private final int storageManagerPort = 3000; //TODO
 
+	private VectorClock vectorClock;
+
+	private int ID;
+
 	public StorageService(IMembershipService membershipService, LocalStore localStore) {
 		this.membershipService = membershipService;
 		this.localStore = localStore;
 		String host = membershipService.getMyself().host;
-		storageManager = new StorageManager(this, localStore, host, storageManagerPort);
-		replicaManager = new ReplicaManager(membershipService, localStore, 1000, host, storageManagerPort);
+		storageManager = new StorageManager(this, host, storageManagerPort);
+		replicaManager = new ReplicaManager(this, membershipService, 1000, host, storageManagerPort);
+		
+		//TODO check better ways to do ID...
+		this.ID = Math.abs(host.hashCode()) % Short.MAX_VALUE;
+		
+		//Vector clock...
+		this.vectorClock = new VectorClock();
+		this.vectorClock.incrementVersion(this.ID, System.currentTimeMillis());
 	}
 
 	@Override
@@ -60,14 +75,19 @@ public class StorageService implements IStorageService {
 		Member myself = membershipService.getMyself();
 		ClientMessage rcvMsg = null;
 		
+		Assert.assertTrue( coordinator != null);
+		Assert.assertTrue( myself != null);
+		
 		if (coordinator.equals(myself)) {
 			resolveMessage(msg);
 			rcvMsg = msg;
 		} else {
 			try {
 				DatagramSocket socket = new DatagramSocket();
-				UDP.send(msg, socket, new InetSocketAddress(coordinator.host, storageManagerPort)); 
-				rcvMsg = (ClientMessage) UDP.receive(socket); 
+				Transport transport = new Transport(socket, this);
+				transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort)); 
+				//UDP.send(msg, socket, new InetSocketAddress(coordinator.host, storageManagerPort)); 
+				rcvMsg = (ClientMessage) transport.receive().msg; 
 				//TODO check if rcvMsg is correct
 				//TODO what if I don't receive the message? Do something with timeouts?
 				socket.close();
@@ -79,8 +99,52 @@ public class StorageService implements IStorageService {
 	}
 	
 	@Override
+	public synchronized VectorClock getVectorClock() {
+		return vectorClock.clone();
+	}
+	
+	@Override
+	public synchronized VectorClock mergeVectorClock(VectorClock vc) {
+		vectorClock.merge(vc);
+		return vectorClock.clone();
+	}
+	
+	@Override
+	public VectorClock incrementVectorClock() {
+		vectorClock.incrementVersion(getID(), System.currentTimeMillis());
+		return vectorClock.clone();
+	}
+
+	@Override
+	public VectorClock mergeAndIncrementVectorClock(VectorClock vc) {
+		vectorClock.merge(vc);
+		vectorClock.incrementVersion(getID(), System.currentTimeMillis());
+		return vectorClock.clone();
+	}
+	
+	@Override
+	public int getID() {
+		return ID;
+	}
+
+	@Override
+	public LocalStore getLocalStore() {
+		return localStore;
+	}
+
+	@Override
+	public int getStoragePort() {
+		return storageManager.getStoragePort();
+	}
+
+	@Override
+	public InetAddress getStorageAddress() {
+		return storageManager.getStorageAddress();
+	}
+	
+	@Override
 	public String toString() {
-		return "[StorageService@"+ this.membershipService.getMyself().id + "]";
+		return "[StorageService@"+ this.membershipService.getMyself().id + "@" + getID() + "]";
 	}
 	
 	private void resolveMessage(ClientMessage msg) {
@@ -90,6 +154,10 @@ public class StorageService implements IStorageService {
 				msg.value = localStore.get(msg.key);
 				break;
 			case Message.PUT:
+				/* only Coordinator put the versioned value in the local store */
+				msg.value = new Versioned<byte[]>(
+						msg.value.getValue(), 
+						incrementVectorClock());
 				localStore.put(msg.key, msg.value);
 				break;
 			case Message.REMOVE:
