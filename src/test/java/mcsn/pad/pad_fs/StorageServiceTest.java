@@ -5,18 +5,17 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
+import java.util.Random;
 
 import org.json.JSONException;
 import org.junit.Test;
 
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
+import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.membership.MembershipService;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
@@ -24,133 +23,112 @@ import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.utils.DummyLocalStore;
 import mcsn.pad.pad_fs.utils.TestUtils;
-import voldemort.versioning.Versioned;
 
-public class StorageServiceTest {
+public class StorageServiceTestWithUpdates {
 
 	@Test
 	public void test() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-
+		
 		String filename = this.getClass().getResource("/gossip.conf").getFile();
 		File configFile = new File(filename);
 		
 		int dim = 4;
-		List<MembershipService> mServices = new ArrayList<>();
-		List<StorageService> sServices = new ArrayList<>();
+		List<IService> mServices = new ArrayList<>();
+		List<IService> sServices = new ArrayList<>();
 		List<LocalStore> lStores = new ArrayList<>();
 		for (int i = 1 ; i <= dim; i++) {
 			Configuration config = new Configuration("127.0.0."+i, configFile);
-			MembershipService membershipService = new MembershipService(config);
-			LocalStore localStore = new DummyLocalStore("127.0.0"+i);
 			
-			mServices.add( membershipService );
+			LocalStore localStore = new DummyLocalStore("127.0.0"+i);
+			MembershipService membershipService = new MembershipService(config);
+			
 			lStores.add( localStore );
+			mServices.add( membershipService );
 			sServices.add( new StorageService(membershipService, localStore));
 		}
 		
-		System.out.println("Start the services...");
-		for ( MembershipService ms : mServices )
-			ms.start();
+		System.out.println("-- start services");
+		TestUtils.startServices(mServices);
+		TestUtils.startServices(sServices);
 		
-		for ( StorageService ss : sServices )
-			ss.start();
-		
-		System.out.println("Wait few seconds...");
+		System.out.println("-- wait few seconds");
 		Thread.sleep(6000);
 		
-		int num = 500;
-		System.out.println("Build " + num + " messages and deliver them");
-		List<ClientMessage> messages = TestUtils.getMessages(Message.PUT, num);
-		Map<Serializable, ClientMessage> hmessages = new HashMap<>();
-		
-		for ( ClientMessage msg : messages) {
+		int num = 300;
+		System.out.println("-- build " + num + " messages and deliver them);");
+		Map<Serializable, ClientMessage> map = new HashMap<>();
+		for (int i=0; i<num; i++) {
+			ClientMessage msg = new ClientMessage(Message.PUT, TestUtils.getRandomString(), 
+					TestUtils.getVersioned(TestUtils.getRandomString().getBytes()));
 			int idx = (Math.abs(msg.key.hashCode()) % dim) + 1;
-			hmessages.put(msg.key, msg);
-			System.out.println("--- ClientMessage: " + msg + " to storageService-" + idx);
-			sServices.get(idx-1).deliverMessage(msg);
+			((StorageService) sServices.get(idx-1)).deliverMessage(msg);
+			map.put(msg.key, msg);
 		}
 		
-		System.out.println("Begin assertions..." );
-		for (ClientMessage m : messages ) {
-			Assert.assertTrue( existKey(m.key, lStores) );
+		int delta = 20;
+		System.out.println("-- wait " + delta + " seconds");
+		Thread.sleep(20*1000);
+		
+		for (Serializable key : map.keySet() ) {
+			Assert.assertTrue( TestUtils.existKey(key, lStores) );
 		}
-		System.out.println("--- keys exist");
+		System.out.println("--- keys exist!");
 		
-		int delta =  20000; //20 sec
-		System.out.println("Wait " + delta/1000 + " seconds...");
-		Thread.sleep(delta);
-		
-		System.out.println("Shutdown the services...");
-		for ( StorageService ss : sServices ) {
-			ss.shutdown();
-		}
-		
-		for ( MembershipService ms : mServices ) {
-			ms.shutdown();
-		}
-		
-		int i = 0;
-		for (ClientMessage m : messages ) {
-			int stores = countKey(m.key, lStores);
-			Assert.assertTrue( "stores: " + stores + " , dim: " + dim + " , " + i, stores == dim );
-			Assert.assertTrue(  
-					error(i++, m.key, hmessages.get(m.key).value, getValues(m.key, lStores)), 
-					equalValues(getValues(m.key, lStores), hmessages.get(m.key).value) );
-			i++;
-		}
-		
-		System.out.println("--- key replicated in all the stores");
-		
-	}
-	
-	public String error (int i, Serializable key, Versioned<byte[]> original, Iterable<Versioned<byte[]>> values) {
-		String str = "";
-		if (original.getValue() == null)
-			str += "oh my god original.getValue returns null" ;
-		
-		System.out.println("Original value: " + new String(original.getValue()));
-		for (Versioned<byte[]> value : values) {
-			if (value.getValue() == null)
-				str += "oh my god value.getValue returns null";
-			else str += "; Replicated Value: " + new String(value.getValue());
-		}
-		str += "; Error at " + i + " for key " + key;
-		return str;
-	}
-	
-	public int countKey (Serializable key, List<LocalStore> lStores) {
-		int count = 0;
-		for ( LocalStore l : lStores )
-			count  += (l.get(key) != null ? 1 : 0);
-		return count;
-	}
-	
-	public Iterable<Versioned<byte[]>> getValues (Serializable key, List<LocalStore> lStores) {
-		Vector<Versioned<byte[]>> values = new Vector<Versioned<byte[]>>();
-		for ( LocalStore l : lStores )
-			values.add(l.get(key));
-		return values;
-	}
-	
-	public boolean equalValues (Iterable<Versioned<byte[]>> values, Versioned<byte[]> original) {
-		Iterator<Versioned<byte[]>> itValue = values.iterator();
-		while (itValue.hasNext()) {
-			Versioned<byte[]> curr = itValue.next();
-			if ( ! Arrays.equals(original.getValue(), curr.getValue()) ) {
-				System.out.println("Value different, wtf");
-				return false;
+		System.out.println("-- update values");
+		Random rand = new Random();
+		for (Serializable key : map.keySet()) {
+			if (rand.nextInt(10) <= 3) {
+				ClientMessage msg = 
+						new ClientMessage(
+							Message.PUT, 
+							key, 
+							TestUtils.getVersioned(
+									TestUtils.getRandomString().getBytes()
+									)
+						);
+				map.put(key, msg);
+				int idx = (Math.abs(msg.key.hashCode()) % dim) + 1;
+				((StorageService) sServices.get(idx-1)).deliverMessage(msg);
 			}
-			// THIS IS NOT HOW IT WORKS
-			/* if ( original.getVersion().compare(curr.getVersion()) != Occurred.CONCURRENTLY ) {
-				System.out.println("Versions different, why?");
-				return false; 
-			}*/
 		}
-		return true;
-	}
-	
-	public boolean existKey (Serializable key, List<LocalStore> lStores) {
-		return countKey (key, lStores) != 0;
+		
+		System.out.println("-- wait " + delta + " seconds");
+		Thread.sleep(20*1000);
+		
+		System.out.println("-- shutdown services");
+		TestUtils.shutdownServices(mServices);
+		TestUtils.shutdownServices(sServices);
+		
+		for (Serializable key : map.keySet() ) {
+			int stores = TestUtils.countKey(key, lStores);
+			
+			Assert.assertTrue( stores == dim );
+			
+			Assert.assertTrue( 
+					
+					"[" + new String(lStores.get(0).get(key).getValue()).substring(0, 5) + " -- " + lStores.get(0).get(key).getVersion() + "] ;; " + 
+							"[" + new String(lStores.get(1).get(key).getValue()).substring(0, 5) + lStores.get(1).get(key).getVersion()  + "] ;;"  +
+							"[" + new String(lStores.get(2).get(key).getValue()).substring(0, 5) + lStores.get(2).get(key).getVersion()  + "] ;; " +
+							"[" + new String(lStores.get(3).get(key).getValue()).substring(0, 5) + lStores.get(3).get(key).getVersion()  + "] ;;" +
+							"[" + new String(map.get(key).value.getValue()).substring(0, 5) + map.get(key).value.getVersion() + "] ;;",
+							
+					TestUtils.checkValues( 
+							TestUtils.getValues(key, lStores), 
+							lStores.get(0).get(key)
+							) 
+					
+					); 
+			
+			Assert.assertTrue( 
+					TestUtils.checkValues( 
+							TestUtils.getValues(key, lStores), 
+							map.get(key).value
+							) 
+					); 
+		}
+		
+		System.out.println("--- values are OK!");
+		
 	}
 
 }
