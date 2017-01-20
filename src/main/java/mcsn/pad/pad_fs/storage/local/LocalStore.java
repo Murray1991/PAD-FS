@@ -34,6 +34,11 @@ public abstract class LocalStore implements IStore<Serializable, byte[]> {
 		return null;
 	}
 
+	public int size() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
 	@Override
 	public void close() {
 		// TODO Auto-generated method stub
@@ -43,5 +48,5 @@ public abstract class LocalStore implements IStore<Serializable, byte[]> {
 	public String toString() {
 		return "[LocalStore@"+this.name+"]";
 	}
-	
+
 }
