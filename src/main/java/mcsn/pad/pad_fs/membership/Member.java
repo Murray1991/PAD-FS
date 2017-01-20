@@ -28,9 +28,8 @@ public class Member {
 	        return false;
 	    
 	    Member member = (Member) o;
-	    return this.host.equals(member.host) &&
+	    return  this.host.equals(member.host) &&
 	    		this.port == member.port &&
-	    		this.heartbeat == member.heartbeat &&
 	    		this.id.equals(member.id);
 	}
 	
