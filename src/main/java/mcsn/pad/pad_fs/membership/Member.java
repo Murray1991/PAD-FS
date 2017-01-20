@@ -35,6 +35,6 @@ public class Member {
 	
 	@Override
 	public String toString() {
-		return "Member: " + "[host=" + host + ", port=" + port + ", heatbeat=" + heartbeat + ", id="+ id + "]";
+		return "Member: " + "[host=" + host + ", port=" + port + ", heartbeat=" + heartbeat + ", id="+ id + "]";
 	}
 }
