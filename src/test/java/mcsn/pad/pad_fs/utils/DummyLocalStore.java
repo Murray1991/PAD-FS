@@ -1,18 +1,18 @@
 package mcsn.pad.pad_fs.utils;
 
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.Versioned;
 
 public class DummyLocalStore extends LocalStore {
 	
-	private HashMap<Serializable, Versioned<byte[]>> hmap;
+	private ConcurrentHashMap<Serializable, Versioned<byte[]>> hmap;
 	
 	public DummyLocalStore(String name) {
 		super(name);
-		hmap = new HashMap<>();
+		hmap = new ConcurrentHashMap<>();
 	}
 	
 	@Override
@@ -33,6 +33,10 @@ public class DummyLocalStore extends LocalStore {
 	@Override
 	public Iterable<Serializable> list() {
 		return hmap.keySet();
+	}
+	
+	public int size() {
+		return hmap.size();
 	}
 
 	@Override
