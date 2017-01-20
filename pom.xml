@@ -23,8 +23,20 @@
         <version>3.1</version>
         <configuration>
           <source>1.8</source>
+          <target>1.8</target> <!-- ho aggiunto ma non ho capito -->
         </configuration>
       </plugin>
+      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-eclipse-plugin</artifactId>
+        <version>2.9</version>
+        <configuration>
+            <downloadSources>true</downloadSources>
+            <downloadJavadocs>true</downloadJavadocs>
+        </configuration>
+    </plugin>
+    
     </plugins>
     
   	<testResources>
@@ -33,28 +45,36 @@
       </testResource>
   	</testResources>
   </build>
-
+  
+   <repositories>
+	   <repository>
+	   	<id>jitpack.io</id>
+	   	<url>https://jitpack.io</url>
+	   </repository>
+   </repositories>
+   
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.8.2</version>
-      <scope>test</scope>
     </dependency>
+    
     <dependency>
-    	<groupId>it.cnr.isti.hpclab</groupId>
-    	<artifactId>gossip</artifactId>
-    	<version>0.0.3</version>
-    </dependency>
+      <groupId>com.github.Murray1991</groupId>
+      <artifactId>gossip</artifactId>
+      <version>master</version>
+	</dependency>
     <dependency>
-    	<groupId>it.cnr.isti.hpclab</groupId>
+    	<groupId>com.github.Murray1991</groupId>
     	<artifactId>versioning</artifactId>
-    	<version>0.0.1</version>
+    	<version>master</version>
     </dependency>
     <dependency>
-    	<groupId>it.cnr.isti.hpclab</groupId>
-    	<artifactId>consistent-hashing</artifactId>
-    	<version>0.0.1</version>
+    	<groupId>com.github.Murray1991</groupId>
+    	<artifactId>hashing</artifactId>
+    	<version>master</version>
     </dependency>
+    
   </dependencies>
 </project>
