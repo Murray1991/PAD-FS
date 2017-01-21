@@ -7,41 +7,45 @@ import voldemort.versioning.Versioned;
 public abstract class LocalStore implements IStore<Serializable, byte[]> {
 	
 	private String name;
+	private LocalStore nextLocalStore;
 	
 	public LocalStore(String name) {
 		this.name = name;
 	}
+	
+	public LocalStore(String name, LocalStore nextLocalStore) {
+		this.name = name;
+		this.nextLocalStore = nextLocalStore;
+	}
+	
+	public LocalStore getNext() {
+		return nextLocalStore;
+	}
+	
+	public int size() {
+		return 0;
+	}
 
 	@Override
 	public Versioned<byte[]> get(Serializable key) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public void put(Serializable key, Versioned<byte[]> value) {
-		// TODO Auto-generated method stub
 	}
 	
 	@Override
 	public void remove(Serializable key) {
-		// TODO
 	}
 
 	@Override
 	public Iterable<Serializable> list() {
-		// TODO Auto-generated method stub
 		return null;
-	}
-
-	public int size() {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 	
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
 	}
 	
 	@Override
