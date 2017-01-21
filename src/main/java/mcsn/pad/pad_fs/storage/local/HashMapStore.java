@@ -1,4 +1,4 @@
-package mcsn.pad.pad_fs.utils;
+package mcsn.pad.pad_fs.storage.local;
 
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -6,11 +6,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.Versioned;
 
-public class DummyLocalStore extends LocalStore {
+public class HashMapStore extends LocalStore {
 	
 	private ConcurrentHashMap<Serializable, Versioned<byte[]>> hmap;
 	
-	public DummyLocalStore(String name) {
+	public HashMapStore(String name) {
 		super(name);
 		hmap = new ConcurrentHashMap<>();
 	}
@@ -41,6 +41,5 @@ public class DummyLocalStore extends LocalStore {
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
 	}
 }
