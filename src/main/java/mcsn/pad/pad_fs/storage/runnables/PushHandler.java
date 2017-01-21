@@ -62,8 +62,10 @@ public class PushHandler implements Runnable {
 			} else if (occ == -1) {
 				replyKeys.add(key);
 				replyValues.add(v2);
-			} else if (occ == 0) {
-				//TODO handle concurrency - do nothing here
+			} else if (occ == 0 && !v1.equals(v2)) {
+				//genero dei messaggi PULL per richiedere i valori
+				//gestione della concorrenza nel ReplyHandler
+				pullKeys.add(key);
 			}
 		}
 		
