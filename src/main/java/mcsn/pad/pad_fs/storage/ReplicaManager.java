@@ -29,7 +29,7 @@ public class ReplicaManager extends Thread {
 		this.delta			= delta;
 		
 		//TODO check the "parallelism degree"
-		taskPool = Executors.newFixedThreadPool(50);
+		taskPool = Executors.newCachedThreadPool();
 		isRunning = new AtomicBoolean(true);
 		
 		try {
