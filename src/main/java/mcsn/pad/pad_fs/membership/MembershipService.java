@@ -1,19 +1,20 @@
 package mcsn.pad.pad_fs.membership;
 
+import java.lang.Thread.State;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import java.util.logging.Logger;
 
 import com.google.code.gossip.GossipMember;
 import com.google.code.gossip.GossipService;
 import com.google.code.gossip.GossipSettings;
 import com.google.code.gossip.LocalGossipMember;
-
 import it.cnr.isti.hpclab.consistent.ConsistentHasher;
 import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
+import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
 
 /**
@@ -24,15 +25,25 @@ import mcsn.pad.pad_fs.common.Configuration;
  */
 public class MembershipService implements IMembershipService {
 	
-	public static final Logger LOGGER = Logger.getLogger(MembershipService.class);
+	public static final Logger LOGGER = Logger.getLogger("MembershipService");
 	
 	/* utilizes a gossip protocol for membership information and failure detection */
 	private GossipService gossipService;
 	
+	private String host;
+	private int port;
+	private List<GossipMember> gossipMembers;
+	private GossipSettings gossipSettings;
+	
 	private boolean isRunning = false;
 	
 	public MembershipService(String host, int port, int logLevel, List<GossipMember> gossipMembers, GossipSettings gossipSettings) throws UnknownHostException, InterruptedException {	
-		gossipService = new GossipService(host, port, "", logLevel, gossipMembers, gossipSettings, null);
+		this.host = host;
+		this.port = port;
+		this.gossipMembers = gossipMembers;
+		this.gossipSettings = gossipSettings;
+		
+		gossipService = new GossipService(host, port, host, gossipMembers, gossipSettings, null);
 	}
 	
 	public MembershipService(Configuration config) throws UnknownHostException, InterruptedException {
@@ -41,6 +52,16 @@ public class MembershipService implements IMembershipService {
 
 	@Override
 	public void start() {
+		LOGGER.info(this + " -- start");
+		State state = gossipService.get_gossipManager().getState();
+		if (! state.equals(State.NEW) ) {
+			try {
+				gossipService = new GossipService(host, port, host, gossipMembers, gossipSettings, null);
+			} catch (UnknownHostException | InterruptedException e) {
+				System.err.println("ERRORISSIMO IN START");
+			}
+		}
+		
 		if (!isRunning) {
 			isRunning = true;
 			gossipService.start();
@@ -49,6 +70,7 @@ public class MembershipService implements IMembershipService {
 	
 	@Override
 	public void shutdown() {
+		LOGGER.info(this + " -- shutdown");
 		if (isRunning) {
 			isRunning = false;
 			gossipService.shutdown();
@@ -71,7 +93,11 @@ public class MembershipService implements IMembershipService {
 		List<Member> members = new ArrayList<>();
 		List<LocalGossipMember> localMembers = gossipService.get_gossipManager().getMemberList();
 		for (LocalGossipMember member : localMembers) {
-			members.add(new Member(member.getHost(), member.getPort(), member.getHeartbeat(), member.getHost()));
+			//TODO controllare se faccio bene...
+			Member m = new Member(member.getHost(), member.getPort(), member.getHeartbeat(), member.getHost());
+			if (!getMyself().equals(m)) {
+				members.add(m);
+			}
 		}
 		return members;
 	}
@@ -100,13 +126,20 @@ public class MembershipService implements IMembershipService {
 		Member coordinator = null;
 		ConsistentHasher<Member, String> cHasher = getConsistentHasher(key);
 		Map<Member, List<String>> map = cHasher.getAllBucketsToMembersMapping();
+		Assert.assertTrue(map.size() > 0);
 		for (Map.Entry<Member, List<String>> e : map.entrySet()) {
 			if (e.getValue().size() != 0) {
 				coordinator = e.getKey();
 				break;
 			}
 		}
-		return coordinator;
+		//TODO investigare... la ragione per cui coordinator puo' essere null
+		return coordinator == null ? getMyself() : coordinator;
+	}
+	
+	@Override
+	public String toString() {
+		return "MembershipService@"+getMyself();
 	}
 	
 	private ConsistentHasher<Member, String> getConsistentHasher(String key) {
