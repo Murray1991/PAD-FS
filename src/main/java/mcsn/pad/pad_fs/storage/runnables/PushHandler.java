@@ -63,16 +63,15 @@ public class PushHandler implements Runnable {
 				replyKeys.add(key);
 				replyValues.add(v2);
 			} else if (occ == 0 && !v1.equals(v2)) {
-				//genero dei messaggi PULL per richiedere i valori
-				//gestione della concorrenza nel ReplyHandler
+				/* add for the pull messages in order to ask the values 
+				 * and handle the concurrency case later in the ReplyHandler */
 				pullKeys.add(key);
 			}
 		}
 		
-		//Send pull message to ask the missing/not-updated keys
+		/* send pull message to ask the missing/not-updated keys */
 		//TODO send more than one PullMessage if all the keys occupy too much space or a threshold number
 		if (pullKeys.size() > 0) {
-			//System.out.println("pullKeys size: " + pullKeys.size());
 			try {
 				Transport transport = new Transport(storageService);
 				transport.send(new PullMessage(pullKeys, storageAddr, storagePort), raddr);
@@ -81,10 +80,9 @@ public class PushHandler implements Runnable {
 			}
 		}
 		
-		//Send reply messages for the local-updated keys
+		/* send reply messages for the local-updated keys */
 		//TODO send more than one ReplyMessage if all the keys occupy too much space or a threshold number
 		if (replyKeys.size() > 0) {
-			//System.out.println("replyKeys size: " + replyKeys.size());
 			try {
 				Transport transport = new Transport(storageService);
 				transport.send(new ReplyMessage(replyKeys, replyValues), raddr);

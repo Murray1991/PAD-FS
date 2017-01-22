@@ -11,17 +11,14 @@ public class DummyService implements IStorageService {
 
 	@Override
 	public void start() {
-		// TODO Auto-generated method stub
 	}
 
 	@Override
 	public void shutdown() {
-		// TODO Auto-generated method stub
 	}
 
 	@Override
 	public boolean isRunning() {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
@@ -36,49 +33,41 @@ public class DummyService implements IStorageService {
 
 	@Override
 	public VectorClock getVectorClock() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public LocalStore getLocalStore() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public int getStoragePort() {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
 	public InetAddress getStorageAddress() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public VectorClock mergeVectorClock(VectorClock vc) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public int getID() {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
 	public VectorClock incrementVectorClock() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public VectorClock mergeAndIncrementVectorClock(VectorClock vc) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

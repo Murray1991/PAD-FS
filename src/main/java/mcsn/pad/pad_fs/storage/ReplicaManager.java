@@ -47,13 +47,9 @@ public class ReplicaManager extends Thread {
 			try {
 				Thread.sleep(delta);
 				final List<Member> view = membershipService.getPreferenceList();
-				final int index = random.nextInt(view.size());
-				
-				final Member partner = view.get(index);
+				final Member partner = view.get(random.nextInt(view.size()));
 				final InetSocketAddress raddr = new InetSocketAddress(partner.host, storagePort);
-				
 				taskPool.execute(new UpdateHandler(raddr, storageAddr, storagePort, storageService));
-				
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

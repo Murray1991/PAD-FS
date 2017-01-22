@@ -7,9 +7,8 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import com.google.common.base.Preconditions;
-
 import it.cnr.isti.hpclab.consistent.ConsistentHasher.BytesConverter;
+import junit.framework.Assert;
 import voldemort.versioning.Occurred;
 import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
@@ -21,7 +20,7 @@ public class Utils {
 		return new BytesConverter<Versioned<byte[]>>() {
 			@Override
 			public byte[] convert(Versioned<byte[]> data) {
-				Preconditions.checkNotNull(data);
+				Assert.assertTrue(data != null);
 				byte[] versioned_data = null;
 				try {
 					versioned_data = convertToBytes(data);
@@ -61,8 +60,8 @@ public class Utils {
 		if (occurr == Occurred.AFTER) {
 			return 1;
 		}
-		if (occurr == Occurred.CONCURRENTLY)
-			System.out.println("-- Concurrency case...");
+		//if (occurr == Occurred.CONCURRENTLY)
+		//	System.out.println("-- Concurrency case...");
 		return 0;	//case concurrency or vc1.equals(vc2)
 	}
 	

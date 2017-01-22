@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.junit.Assert;
+
 import mcsn.pad.pad_fs.message.PushMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -40,13 +42,13 @@ public class UpdateHandler implements Runnable {
 	public void run() {
 		Iterable<Serializable> keys = localStore.list();
 		if (keys.iterator().hasNext()) {
+			Assert.assertTrue(localStore.size() != 0);
 			Iterator<Serializable> itKey = keys.iterator();
 			while (itKey.hasNext()) {
 				//TODO add keys to pieces list until max possible packet size has been reached
-				final List<Serializable> pieces = new ArrayList<Serializable>(10);
-				while (itKey.hasNext() && pieces.size() < 10)
+				final List<Serializable> pieces = new ArrayList<Serializable>(100);
+				while (itKey.hasNext() && pieces.size() < 100)
 					pieces.add(itKey.next());
-				//Increment service's vector clock, build the PushMessage with pieces and send
 				try {
 					Transport transport = new Transport(storageService);
 					transport.send(new PushMessage(pieces, storageAddress, storagePort, localStore), partner);

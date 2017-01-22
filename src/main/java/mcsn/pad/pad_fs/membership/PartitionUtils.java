@@ -9,7 +9,7 @@ import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
 
 public class PartitionUtils {
 	
-	//TODO delete this and move on MembershipService
+	//TODO delete this and move on MembershipService... or not
 	
 	public static ConsistentHasher<String, String> getConsistentHasher() {
 		return new ConsistentHasherImpl<>(
