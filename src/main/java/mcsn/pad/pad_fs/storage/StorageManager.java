@@ -94,5 +94,6 @@ public class StorageManager extends Thread {
 	@Override
 	public void interrupt() {
 		isRunning.set(false);
+		udpServer.close();
 	}
 }
