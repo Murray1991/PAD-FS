@@ -24,8 +24,8 @@ public class Message implements Serializable {
 	public static final int SUCCESS = 7;
 	public static final int ERROR 	= 8;
 	public static final int UNKNOWN = 9;
-	public static final int OK 		= 7;
-	public static final int KO 		= 8;
+
+	public static final int NOT_FOUND = 10;
 
 	public int type;
 	
