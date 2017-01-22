@@ -28,8 +28,7 @@ public class UDP {
 		byteBuffer.put(data);
 		byte[] buf = byteBuffer.array();
 
-		//TODO bind to a local address and a port <--- probably not essential
-		//TODO what if data.length is bigger than the maximum pkt size?
+		//TODO What if data.length is bigger than the maximum pkt size?
 		DatagramSocket socket = new DatagramSocket();
 		DatagramPacket pkt = new DatagramPacket(buf, buf.length, addr);
 		socket.send(pkt);
@@ -50,7 +49,6 @@ public class UDP {
 		byteBuffer.put(data);
 		byte[] buf = byteBuffer.array();
 
-		//TODO bind to a local address and a port <--- probably not essential
 		//TODO what if data.length is bigger than the maximum pkt size?
 		DatagramPacket pkt = new DatagramPacket(buf, buf.length, addr);
 		socket.send(pkt);
