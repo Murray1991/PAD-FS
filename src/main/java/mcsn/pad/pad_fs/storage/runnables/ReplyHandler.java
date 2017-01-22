@@ -2,7 +2,6 @@ package mcsn.pad.pad_fs.storage.runnables;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Vector;
 
 import junit.framework.Assert;
@@ -74,15 +73,13 @@ public class ReplyHandler implements Runnable {
 			localStore.put(key, value);	
 			return;
 		}
-		
 		/* store the value according to a timestamp-based strategy */
 		Versioned<byte[]> v1 = value1;
 		Versioned<byte[]> v2 = concurrentLocalStore.get(key);
 		Versioned<byte[]> toInsert = v2 == null ? value1 : 
 					new TimeBasedInconsistencyResolver<byte[]>()
 						.resolveConflicts( Arrays.asList(v1, v2) )
-						.get(0);
-					
+						.get(0);		
 		concurrentLocalStore.put(key, toInsert);
 	}
 }
