@@ -3,7 +3,10 @@ package mcsn.pad.pad_fs.transport;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.util.List;
 
+import junit.framework.Assert;
+import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.InternalMessage;
 import mcsn.pad.pad_fs.message.Message;
@@ -49,15 +52,17 @@ public class Transport {
 		VectorClock vc = storageService.incrementVectorClock();
 		switch (type) {
 		case Message.GET:
-		case Message.PUT:
-		case Message.REMOVE:
 		case Message.LIST:
+			return;
+		case Message.REMOVE:
+		case Message.PUT:
 			ClientMessage cmsg = (ClientMessage) msg;
 			cmsg.value = new Versioned<byte[]>(cmsg.value.getValue(), vc);
 			return;
 		case Message.PUSH:
 		case Message.PULL:
 		case Message.REPLY:
+			/*in the case of anti-entropy message just copy the global vc */
 			InternalMessage imsg = (InternalMessage) msg;
 			imsg.vectorClock = vc;
 			return;
@@ -70,21 +75,41 @@ public class Transport {
 	private void onReceive(Message msg, int type) {
 		switch (type) {
 		case Message.GET:
-		case Message.PUT:
-		case Message.REMOVE:
 		case Message.LIST:
+			return;
+		case Message.REMOVE:
+		case Message.PUT:
 			storageService.mergeAndIncrementVectorClock( (VectorClock)
 					((ClientMessage) msg).value.getVersion() );
 			return;
 		case Message.PUSH:
 		case Message.PULL:
 		case Message.REPLY:
+			//Here merge & increment is necessary for possible partition network
 			storageService.mergeAndIncrementVectorClock( 
 					((InternalMessage) msg).vectorClock);
 			return;
 		default:
 			System.err.println("Bad srcMsg type format: " + type);
 			break;
+		}
+	}
+
+	public void multicast(ClientMessage msg, List<Member> members) {
+		int count = 0;
+		for (Member member : members) {
+			try {
+				send(msg, new InetSocketAddress(member.host, storageService.getStoragePort()));
+			} catch (IOException e) {
+				count++;
+			} 
+		}
+		Assert.assertTrue(count == 0);
+		for (int i = 0; i < members.size(); i++) {
+			try {
+				receive();
+			} catch (IOException | ClassNotFoundException e) {
+			}
 		}
 	}
 	
