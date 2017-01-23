@@ -83,6 +83,7 @@ public class Node
 		}
 		
 		Assert.assertNotNull("local store is null", dbStore);
+		Assert.assertNotNull("next local store is null", dbStore.getNext());
 		
 		StorageService storageService = 
 				new StorageService(membershipService, dbStore);
