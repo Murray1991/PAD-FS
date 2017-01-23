@@ -42,18 +42,6 @@ public class Node
 		this.config = config;
 		this.services = createServices(storeClass);
 	}
-    
-    public Node(File configFile) throws FileNotFoundException, JSONException, IOException, InterruptedException {
-    	this( new Configuration(configFile) , DBStore.class );
-	}
-    
-	public Node(final int port, String seed) throws UnknownHostException, InterruptedException {
-		this( new Configuration(seed, port) , DBStore.class  );
-	}
-
-	public Node(String ipAddress, File configFile) throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		this( new Configuration (ipAddress, configFile) , DBStore.class  );
-	}
 	
 	public Node(File configFile, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
     	this( new Configuration(configFile) , storeClass );
