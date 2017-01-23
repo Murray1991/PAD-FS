@@ -60,7 +60,7 @@ public class StorageManager extends Thread {
 				SourceMessage srcMsg = transport.receive(); //UDP.srcReceive(udpServer);
 				taskPool.execute(getHandler(srcMsg));
 			} catch (ClassNotFoundException | IOException e) {
-				e.printStackTrace();
+				System.out.println("-- Socket closed, impossible receive");
 			}
 		}
 	}

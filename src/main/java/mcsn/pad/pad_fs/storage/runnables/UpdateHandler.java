@@ -53,7 +53,7 @@ public class UpdateHandler implements Runnable {
 					Transport transport = new Transport(storageService);
 					transport.send(new PushMessage(pieces, storageAddress, storagePort, localStore), partner);
 				} catch (IOException e) {
-					e.printStackTrace();
+					System.out.println("-- Socket closed, impossible send");
 				}
 			}
 		}
