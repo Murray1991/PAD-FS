@@ -21,6 +21,7 @@ import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
 import mcsn.pad.pad_fs.Node;
 import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.message.ClientMessage;
+import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
@@ -191,7 +192,7 @@ public class TestUtils {
 		
 		List<Node> members = new ArrayList<>();
 		for (int i = 1; i <= dim; i++) {
-			members.add(i-1,  new Node("127.0.0."+i, configFile));
+			members.add(i-1,  new Node("127.0.0."+i, configFile, HashMapStore.class));
 		}
 		
 		return members;
