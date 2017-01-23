@@ -127,17 +127,14 @@ public class StorageServiceTest {
 		List<Serializable> keys = createKeys(30);
 		List<Map<Serializable, ClientMessage>> list = new ArrayList<>();
 		Random rand = new Random();
-		
 		for (int i=0; i<2; i++) {
 			final Map<Serializable, ClientMessage> msgs = createMessages(Message.PUT, keys);
 			final int idx = rand.nextInt(dim);
 			list.add(msgs);
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					for (Serializable key : msgs.keySet()) {
-						((StorageService) sServices.get(idx)).deliverMessage(msgs.get(key));
-					}
+			new Thread( () -> {
+				for (Serializable key : msgs.keySet()) {
+					StorageService ss = (StorageService) sServices.get(idx);
+					ss.deliverMessage(msgs.get(key));
 				}
 			}).start();
 		}
@@ -146,6 +143,7 @@ public class StorageServiceTest {
 		
 		System.out.println("-- restart all the gossip services...");
 		TestUtils.startServices(mServices);
+		
 		System.out.println("-- wait...");
 		Thread.sleep(25000);
 		
@@ -251,20 +249,17 @@ public class StorageServiceTest {
 			Assert.assertTrue( stores + " != " + lStores.size(), stores == lStores.size() );
 			
 			Assert.assertTrue( 
-					
 					"[" + new String(lStores.get(0).get(key).getValue()).substring(0, 5) + " -- " + lStores.get(0).get(key).getVersion() + "] ;; " + 
 							"[" + new String(lStores.get(1).get(key).getValue()).substring(0, 5) + lStores.get(1).get(key).getVersion()  + "] ;;"  +
 							"[" + new String(lStores.get(2).get(key).getValue()).substring(0, 5) + lStores.get(2).get(key).getVersion()  + "] ;; " +
 							"[" + new String(lStores.get(3).get(key).getValue()).substring(0, 5) + lStores.get(3).get(key).getVersion()  + "] ;;" +
 							"[" + new String(map.get(key).value.getValue()).substring(0, 5) + map.get(key).value.getVersion() + "] ;;" +
 							Utils.compare(map.get(key).value, lStores.get(3).get(key)) ,
-							
 					TestUtils.checkValues( 
 							TestUtils.getValues(key, lStores), 
 							lStores.get(0).get(key)
 							) 
-					
-					); 
+					);
 			
 			Assert.assertTrue( 
 					TestUtils.checkValues( 
