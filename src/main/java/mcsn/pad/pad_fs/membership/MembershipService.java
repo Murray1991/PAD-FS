@@ -52,7 +52,6 @@ public class MembershipService implements IMembershipService {
 
 	@Override
 	public void start() {
-		LOGGER.info(this + " -- start");
 		State state = gossipService.get_gossipManager().getState();
 		if (! state.equals(State.NEW) ) {
 			try {
@@ -61,8 +60,8 @@ public class MembershipService implements IMembershipService {
 				System.err.println("ERRORISSIMO IN START");
 			}
 		}
-		
 		if (!isRunning) {
+			LOGGER.info(this + " -- start");
 			isRunning = true;
 			gossipService.start();
 		}
@@ -70,8 +69,8 @@ public class MembershipService implements IMembershipService {
 	
 	@Override
 	public void shutdown() {
-		LOGGER.info(this + " -- shutdown");
 		if (isRunning) {
+			LOGGER.info(this + " -- shutdown");
 			isRunning = false;
 			gossipService.shutdown();
 		}
