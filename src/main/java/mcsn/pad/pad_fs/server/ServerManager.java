@@ -33,14 +33,12 @@ public class ServerManager extends Thread {
 		while (listening) {
 			Socket sck = null;
 			try {
+				//TODO maybe use executor with a fixed thread pool
 				sck = serverSocket.accept();
+				new ServerThread(sck, storageService).start();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			if (sck != null) {
-				//TODO maybe use executor with a fixed thread pool
-				new ServerThread(sck, storageService).start();
-			}			
 		}
 	}
 	
