@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import mcsn.pad.pad_fs.membership.IMembershipService;
@@ -51,7 +53,7 @@ public class ReplicaManager extends Thread {
 				final InetSocketAddress raddr = new InetSocketAddress(partner.host, storagePort);
 				taskPool.execute(new UpdateHandler(raddr, storageAddr, storagePort, storageService));
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+			} catch (RejectedExecutionException e) {
 			}
 		}
 	}
@@ -59,6 +61,12 @@ public class ReplicaManager extends Thread {
 	@Override
 	public void interrupt() {
 		isRunning.set(false);
+		try {
+			taskPool.shutdownNow();
+			boolean b = taskPool.awaitTermination(1, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+		}
+		super.interrupt();
 	}
 
 }
