@@ -14,6 +14,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import mcsn.pad.pad_fs.storage.local.HashMapStore;
+
 
 public class NodeTest {
 	
@@ -29,11 +31,11 @@ public class NodeTest {
 		this.nodes = new ArrayList<>();
 		
 		for (int i = 1; i <= dim; i++) {
-			nodes.add(i-1,  new Node("127.0.0."+i, configFile));
+			nodes.add(i-1,  new Node("127.0.0."+i, configFile, HashMapStore.class));
 		}
 		
-		nodes.add(dim++, new Node("127.0.0.10", configFile));
-		nodes.add(dim++, new Node("127.0.0.11", configFile));
+		nodes.add(dim++, new Node("127.0.0.10", configFile, HashMapStore.class));
+		nodes.add(dim++, new Node("127.0.0.11", configFile, HashMapStore.class));
 		
 		System.out.println("starting nodes...");
 		for (Node node : nodes)
