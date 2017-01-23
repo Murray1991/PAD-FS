@@ -2,8 +2,14 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>mcsn.pad</groupId>
+		<artifactId>pad-fs-root</artifactId>
+		<version>0.0.1</version>
+	</parent>
+	
 	<groupId>mcsn.pad</groupId>
-	<artifactId>pad-fs</artifactId>
+	<artifactId>core</artifactId>
 	<version>0.0.1</version>
 	<packaging>jar</packaging>
 
@@ -18,6 +24,7 @@
 	<build>
 
 		<plugins>
+		<!-- 
 			<plugin>
 				<artifactId>maven-jar-plugin</artifactId>
 				<executions>
@@ -31,7 +38,7 @@
 					</execution>
 				</executions>
 			</plugin>
-
+		 -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
@@ -67,7 +74,31 @@
 					<target>1.8</target>
 				</configuration>
 			</plugin>
-
+			
+			<plugin>
+			    <artifactId>maven-dependency-plugin</artifactId>
+			    <executions>
+			      <execution>
+			        <id>copy-artifact</id>
+	                <phase>package</phase>
+	                <goals>
+	                 <goal>copy</goal>
+	                </goals>
+			        <configuration>
+			          <artifactItems>
+                        <artifactItem>
+                          <groupId>${project.groupId}</groupId>
+                          <artifactId>${project.artifactId}</artifactId>
+                          <version>${project.version}</version>
+                          <type>${project.packaging}</type>
+                          <destFileName>pad-fs.jar</destFileName>
+                        </artifactItem>
+                      </artifactItems>
+			          <outputDirectory>../target</outputDirectory>
+			        </configuration>
+			      </execution>
+			    </executions>
+			</plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
