@@ -190,7 +190,15 @@ public class StorageService implements IStorageService {
 				/* remove only if the msg's version
 				 * is greater than the local value's
 				 * version but multicast anyway if
-				 * removeFlag is true */
+				 * removeFlag is true, only the
+				 * coordinator can receive the
+				 * packet with removeFlag setted
+				 * to true */
+				if (msg.removeFlag) {
+					msg.value = new Versioned<byte[]>(
+							msg.value.getValue(), 
+							incrementVectorClock());
+				}
 				Versioned<byte[]> v1= msg.value;
 				Versioned<byte[]> v2 = localStore.get(msg.key);
 				if ( Utils.compare(v1, v2) == 1 ) {
