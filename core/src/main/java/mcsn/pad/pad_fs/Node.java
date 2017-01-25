@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,7 @@ import mcsn.pad.pad_fs.common.Configuration;
 import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.membership.MembershipService;
+import mcsn.pad.pad_fs.server.ServerService;
 import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.DBStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -89,6 +91,12 @@ public class Node
 				new StorageService(membershipService, dbStore);
 		
 		services.add(storageService);
+		
+		InetAddress bindAddr = InetAddress.getByName(config.getHost());
+		ServerService serverService =
+				new ServerService(storageService, 8080, 0, bindAddr);
+		
+		services.add(serverService);
 		
 		return services;
 	}
