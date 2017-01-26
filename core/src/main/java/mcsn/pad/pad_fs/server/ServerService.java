@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 
 import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.storage.IStorageService;
-import mcsn.pad.pad_fs.storage.StorageService;
 
 public class ServerService implements IService {
 	

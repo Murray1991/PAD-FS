@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -12,8 +11,6 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import org.apache.commons.cli.ParseException;
-
-import com.sun.mail.iap.ConnectionException;
 
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;

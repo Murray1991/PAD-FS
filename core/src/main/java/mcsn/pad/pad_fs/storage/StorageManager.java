@@ -7,7 +7,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import mcsn.pad.pad_fs.message.Message;
@@ -96,11 +95,7 @@ public class StorageManager extends Thread {
 	public void interrupt() {
 		isRunning.set(false);
 		udpServer.close();
-		try {
-			taskPool.shutdownNow();
-			boolean b = taskPool.awaitTermination(1, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-		}
+		taskPool.shutdownNow();
 		super.interrupt();
 	}
 }

@@ -42,7 +42,7 @@ public class UpdateHandler implements Runnable {
 	public void run() {
 		Iterable<Serializable> keys = localStore.list();
 		if (keys.iterator().hasNext()) {
-			Assert.assertTrue(localStore.size() != 0);
+			Assert.assertTrue(""+localStore.size(), localStore.size() != 0);
 			Iterator<Serializable> itKey = keys.iterator();
 			while (itKey.hasNext()) {
 				//TODO add keys to pieces list until max possible packet size has been reached

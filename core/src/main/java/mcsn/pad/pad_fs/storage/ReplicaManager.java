@@ -8,7 +8,6 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import mcsn.pad.pad_fs.membership.IMembershipService;
@@ -61,11 +60,7 @@ public class ReplicaManager extends Thread {
 	@Override
 	public void interrupt() {
 		isRunning.set(false);
-		try {
-			taskPool.shutdownNow();
-			boolean b = taskPool.awaitTermination(1, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-		}
+		taskPool.shutdownNow();
 		super.interrupt();
 	}
 
