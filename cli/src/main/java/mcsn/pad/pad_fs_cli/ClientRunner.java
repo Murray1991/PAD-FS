@@ -4,11 +4,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.Vector;
 
@@ -88,7 +88,7 @@ public class ClientRunner {
         }
         
         Vector<Versioned<byte[]>> dataVector = null;
-        if ((msg.type == Message.LIST || msg.type == Message.GET) && msg.status == Message.SUCCESS) {
+        if (msg.type == Message.GET && msg.status == Message.SUCCESS) {
         	dataVector = msg.values;
         }
         
@@ -116,6 +116,11 @@ public class ClientRunner {
 	        	for (int i = 0; i < dataVector.size(); i++) {
 	        		System.out.println(new String(dataVector.get(i).getValue()));
 	        	}
+	        }
+	        
+	        if (msg.type == Message.LIST && msg.status == Message.SUCCESS) {
+	        	for (Serializable key : msg.keys)
+	        		System.out.println(key);
 	        }
 	        
         } catch (IOException e) {
