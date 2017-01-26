@@ -8,12 +8,15 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.Vector;
 
 import org.apache.commons.cli.ParseException;
 
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
+import voldemort.versioning.Versioned;
 
 public class ClientRunner {
 	
@@ -84,6 +87,11 @@ public class ClientRunner {
         	data = msg.value.getValue();
         }
         
+        Vector<Versioned<byte[]>> dataVector = null;
+        if ((msg.type == Message.LIST || msg.type == Message.GET) && msg.status == Message.SUCCESS) {
+        	dataVector = msg.values;
+        }
+        
         try {
         	
 	        if (data != null && outputPathFile != null) {
@@ -94,6 +102,20 @@ public class ClientRunner {
 	        
 	        if (data != null && outputPathFile == null) {
 	        	System.out.println(new String(data));
+	        }
+	        
+	        if (dataVector != null && outputPathFile != null) {
+	        	for (int i = 0; i < dataVector.size(); i++) {
+	        		System.out.println("saving concurrent copy in \"" + outputPathFile + i + "\"");
+		        	new File(outputPathFile+i).createNewFile();
+		        	Files.write(Paths.get(outputPathFile+i), dataVector.get(i).getValue());
+	        	}
+	        }
+	        
+	        if (dataVector != null && outputPathFile != null) {
+	        	for (int i = 0; i < dataVector.size(); i++) {
+	        		System.out.println(new String(dataVector.get(i).getValue()));
+	        	}
 	        }
 	        
         } catch (IOException e) {
