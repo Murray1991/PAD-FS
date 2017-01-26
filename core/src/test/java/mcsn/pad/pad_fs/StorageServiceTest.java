@@ -190,6 +190,24 @@ public class StorageServiceTest {
 		}
 	}
 	
+	@Test
+	public void testList() throws InterruptedException {
+		System.out.println("====== testList ======");
+		deliverMessages(map, sServices);
+		System.out.println("-- wait...");
+		Thread.sleep(8000);
+		
+		System.out.println("-- send list message");
+		ClientMessage msg = new ClientMessage(Message.LIST);
+		
+		int idx = (Math.abs(msg.hashCode()) % sServices.size()) + 1;
+		ClientMessage rcvMsg = ((StorageService) 
+				sServices.get(idx-1))
+				.deliverMessage(msg);
+		
+		Assert.assertTrue("number of keys: " + rcvMsg.keys.size(), rcvMsg.keys.size() == num);
+	}
+	
 	private Map<Serializable, ClientMessage> createMessages(int type, List<Serializable> keys) {
 		Map<Serializable, ClientMessage> map = new HashMap<>();
 		for (Serializable key : keys)
