@@ -7,6 +7,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,22 +40,37 @@ public class Node
 	private List<IService> services;
 
 	private MembershipService membershipService;
+
+	private Path dirPath;
 	
-	private Node(Configuration config, Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
+	private Node(Configuration config, Path dirPath, Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
 		this.config = config;
+		this.dirPath = dirPath;
 		this.services = createServices(storeClass);
 	}
 	
 	public Node(File configFile, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
-    	this( new Configuration(configFile) , storeClass );
+    	this( new Configuration(configFile) , Paths.get(""), storeClass );
 	}
     
 	public Node(final int port, String seed, Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
-		this( new Configuration(seed, port) , storeClass  );
+		this( new Configuration(seed, port) , Paths.get(""), storeClass  );
 	}
 
 	public Node(String ipAddress, File configFile, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		this( new Configuration (ipAddress, configFile) , storeClass  );
+		this( new Configuration (ipAddress, configFile) , Paths.get("") , storeClass  );
+	}
+	
+	public Node(File configFile, Path dirPath, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
+    	this( new Configuration(configFile) , dirPath, storeClass );
+	}
+    
+	public Node(final int port, String seed, Path dirPath, Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
+		this( new Configuration(seed, port) , dirPath, storeClass  );
+	}
+
+	public Node(String ipAddress, File configFile, Path dirPath, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
+		this( new Configuration (ipAddress, configFile) , dirPath , storeClass  );
 	}
 	
 	private List<IService> createServices(Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
@@ -72,7 +89,7 @@ public class Node
 			
 			Constructor<?> constructor = storeClass.getConstructor(String.class);
 			dbStore = (LocalStore) constructor.newInstance( 
-							new Object[] { config.getHost() + ".db" });
+							new Object[] { Paths.get( dirPath.toString(), config.getHost() + ".db" ).toString() });
 			
 		} catch (InstantiationException 
 				| IllegalAccessException 
