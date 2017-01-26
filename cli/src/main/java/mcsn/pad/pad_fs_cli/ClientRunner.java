@@ -118,7 +118,7 @@ public class ClientRunner {
 	        	}
 	        }
 	        
-	        if (msg.type == Message.LIST && msg.status == Message.SUCCESS) {
+	        if (msg.type == Message.LIST && msg.keys != null && msg.status == Message.SUCCESS) {
 	        	for (Serializable key : msg.keys)
 	        		System.out.println(key);
 	        }
