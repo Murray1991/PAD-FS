@@ -6,7 +6,7 @@ import java.io.IOException;
 
 import org.json.JSONException;
 
-import mcsn.pad.pad_fs.storage.local.HashMapStore;
+import mcsn.pad.pad_fs.storage.local.MapDBStore;
 
 public class NodeRunner {
 
@@ -22,9 +22,9 @@ public class NodeRunner {
 		
 		System.out.println("Active Count: " + Thread.currentThread().getThreadGroup().activeCount());
 		if (args.length >= 2) {
-			padNode = new Node(args[1], configFile, HashMapStore.class);
+			padNode = new Node(args[1], configFile, MapDBStore.class);
 		} else {
-			padNode = new Node(configFile, HashMapStore.class);
+			padNode = new Node(configFile, MapDBStore.class);
 		}
 		
 		System.out.println("Active Count: " + Thread.currentThread().getThreadGroup().activeCount());
