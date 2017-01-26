@@ -51,7 +51,7 @@ public class ClientMessage extends Message {
 	}
 	
 	public void addKey(Serializable key) {
-		if (keys != null && key != null)
+		if (keys == null && key != null)
 			keys = new Vector<>();
 		if (key != null)
 			keys.add(key);
