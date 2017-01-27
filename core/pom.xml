@@ -163,19 +163,19 @@
 		<dependency>
 			<groupId>com.github.Murray1991</groupId>
 			<artifactId>gossip</artifactId>
-			<version>master</version>
+			<version>master-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.github.Murray1991</groupId>
 			<artifactId>versioning</artifactId>
-			<version>master</version>
+			<version>master-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.github.Murray1991</groupId>
 			<artifactId>hashing</artifactId>
-			<version>master</version>
+			<version>master-SNAPSHOT</version>
 		</dependency>
 
 	</dependencies>
