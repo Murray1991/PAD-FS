@@ -42,6 +42,15 @@ public class ClientMessage extends Message {
 		this.removeFlag = removeFlag;	//it's significative only for REMOVE
 	}
 	
+	/* GET constructor */
+	public ClientMessage(int type, Serializable key) {
+		if (!correctType(type, Message.GET))
+			throw new RuntimeException("Incorrect type for ClientMessage");
+		this.type = type;
+		this.key = key;
+		this.value = new Versioned<byte[]>(null);
+	}
+	
 	/* LIST constructor */
 	public ClientMessage(int type) {
 		if (!correctType(type, Message.LIST))
