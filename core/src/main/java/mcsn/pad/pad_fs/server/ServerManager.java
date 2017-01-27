@@ -37,7 +37,7 @@ public class ServerManager extends Thread {
 				sck = serverSocket.accept();
 				new ServerThread(sck, storageService).start();
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.out.println("Socket closed in Server Manager");
 			}
 		}
 	}
