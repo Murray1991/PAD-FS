@@ -15,12 +15,13 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.json.JSONException;
 
+import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.storage.local.MapDBStore;
 
 public class NodeRunner {
 
 	public static void main(String[] args) throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		
+
 		Options options = new Options();
 		Option config = new Option("c", "config", true, "configuration file");
 		Option bindAddr = new Option("b", "bindaddr", true, "binding address");
@@ -78,12 +79,19 @@ public class NodeRunner {
 		try {
 	        byte[] b = new byte[1024];
 	        while ( System.in.read(b) != -1 ) {
-	            System.out.println("-- press ^D (EOF) to shutdown");
+	        	String input = new String(b).trim();
+	        	if (input.equals("members") || input.equals("m")) {
+		     		for (Member m : padNode.getMemberList())
+		        			System.out.println(m);
+	        	} else {
+	        		System.out.println("-- press ^D (EOF) to shutdown");
+	        	}
 	        }
 	    } catch (Exception e) {
 	    }
 		
 		System.out.println("-- shutdown pad-fs node");
+		
 		padNode.shutdown();
 		
 		System.exit(0);
