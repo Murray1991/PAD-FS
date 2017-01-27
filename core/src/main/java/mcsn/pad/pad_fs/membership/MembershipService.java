@@ -90,7 +90,10 @@ public class MembershipService implements IMembershipService {
 	@Override
 	public List<Member> getMembers() {
 		List<Member> members = new ArrayList<>();
-		List<LocalGossipMember> localMembers = gossipService.get_gossipManager().getMemberList();
+		List<LocalGossipMember> localMembers = gossipService
+				.get_gossipManager()
+				.getMemberList();
+		
 		for (LocalGossipMember member : localMembers) {
 			//TODO controllare se faccio bene...
 			Member m = new Member(member.getHost(), member.getPort(), member.getHeartbeat(), member.getHost());
@@ -99,6 +102,21 @@ public class MembershipService implements IMembershipService {
 			}
 		}
 		return members;
+	}
+	
+	@Override
+	public List<Member> getDeadMembers() {
+		List<Member> deadMembers = new ArrayList<>();
+		List<LocalGossipMember> localMembers = gossipService
+				.get_gossipManager()
+				.getDeadList();
+		
+		for (LocalGossipMember member : localMembers) {
+			Member m = new Member(member.getHost(), member.getPort(), member.getHeartbeat(), member.getHost());
+			deadMembers.add(m);
+		}
+		
+		return deadMembers;
 	}
 	
 	@Override

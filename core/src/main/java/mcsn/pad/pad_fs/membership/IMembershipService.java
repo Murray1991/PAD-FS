@@ -11,4 +11,6 @@ public interface IMembershipService extends IService {
 	public List<Member> getPreferenceList() throws InterruptedException;
 	
 	public Member getCoordinator(String key);
+
+	public List<Member> getDeadMembers();
 }
