@@ -145,9 +145,9 @@ public class StorageServiceTest {
 		TestUtils.startServices(mServices);
 		
 		System.out.println("-- wait...");
-		Thread.sleep(25000);
+		Thread.sleep(16000);
 		
-		//concurrency test here
+		System.out.println("-- concurrency test...");
 		Map<Serializable, ClientMessage> getMessages = createMessages(Message.GET, keys);
 		for (int i=0; i<2; i++) {
 			for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
@@ -164,7 +164,6 @@ public class StorageServiceTest {
 			}
 		}
 		
-		//select the keys to remove
 		for (int i = 0; i < keys.size()/2 ; i++) {
 			int idx = rand.nextInt(keys.size());
 			keys.remove(idx);

@@ -59,7 +59,8 @@ public class ServerServiceTest {
 		
 		for ( Versioned<byte[]> e : list ) {
 			Socket sck = new Socket(addr, 8080);
-			ClientMessage sendMsg = new ClientMessage(1, TestUtils.nextSessionId(new SecureRandom()), e);
+			ClientMessage sendMsg = 
+					new ClientMessage(Message.PUT, TestUtils.nextSessionId(new SecureRandom()), e);
 			ClientMessage rcvMsg = request(sendMsg, sck);
 			boolean b = 
 					sendMsg.key.equals(rcvMsg.key) &&
@@ -85,7 +86,8 @@ public class ServerServiceTest {
 		       new ExecutorCompletionService<Boolean>(executor);
 		
 		for ( Versioned<byte[]> e : list) {
-			ClientMessage sendMsg = new ClientMessage(1, TestUtils.nextSessionId(new SecureRandom()), e);
+			ClientMessage sendMsg = 
+					new ClientMessage(Message.PUT, TestUtils.nextSessionId(new SecureRandom()), e);
 			completionService.submit(new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
