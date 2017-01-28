@@ -1,4 +1,4 @@
-# PAD-FS: project guidelines and design choices
+# PAD-FS
 
 #### Overview
 * A simple but distributed key-value storage system
