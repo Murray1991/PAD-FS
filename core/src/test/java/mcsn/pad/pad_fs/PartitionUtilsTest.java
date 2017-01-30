@@ -37,46 +37,57 @@ public class PartitionUtilsTest {
 	}
 	
 	@Test
-	public void test() throws FileNotFoundException, JSONException, IOException, InterruptedException {
+	public void cHasherTest() throws FileNotFoundException, JSONException, IOException, InterruptedException {
+		List<Node> nodes = TestUtils.getMembers(numServers);	//buckets
+		List<String> keys = createKeys(numKeys);				//members
 		
-		List<Node> nodes = TestUtils.getMembers(numServers);
-		List<String> keys = createKeys(numKeys);
+		ConsistentHasher<String, String> cHasher = PartitionUtils
+				.getConsistentHasher();
 		
-		ConsistentHasher<String, String> cHasher = PartitionUtils.getConsistentHasher();
 		for (Node node : nodes)
 			cHasher.addBucket(node.getMyself().host);
-		
 		for (String key : keys)
 			cHasher.addMember(key);
 		
+		// PartitionUtils.printBucketDistribution(cHasher);
+		
 		String key = "abcdefgh";
 		cHasher.addMember(key);
-		String coordinator = PartitionUtils.getCoordinator(cHasher.getAllBuckets(), key);
-		List<String> prefList = PartitionUtils.getPreferenceList(cHasher.getAllBuckets());
 		
-		int prev_index = prefList.indexOf(coordinator);
-		int index = prefList.indexOf(coordinator);
+		String coordinator = PartitionUtils
+				.getCoordinator(cHasher.getAllBuckets(), key);
 		
-		while (cHasher.getAllBuckets().size() >= 3) {
-			System.out.println("coordinator: " + coordinator + " in " + index);
-			System.out.println("distribution:");
-			printLoadDistribution(cHasher);
+		List<String> prefList = PartitionUtils
+				.getPreferenceList(cHasher.getAllBuckets(), key, 5);
+		
+		System.out.println("Preference list, asterisk next to the coordinator for key " + key);
+		for (String s : prefList)
+			System.out.println(s + (s.equals(coordinator) ? " *" : ""));
+		
+		System.out.printf("\n");
+		
+		while (cHasher.getAllBuckets().size() >= 3 && ! prefList.isEmpty()) {
+			int next = (prefList.indexOf(coordinator) + 1) % prefList.size();
+			String expected = prefList.get(next);
 			
-			System.out.println("---------------");
-			
-			prev_index = prefList.indexOf(coordinator);
+			System.out.println("remove coordinator " + coordinator + ", expected new is " + expected);
 			cHasher.removeBucket(coordinator);
+			prefList.remove(coordinator);
 			
-			coordinator = PartitionUtils.getCoordinator(cHasher.getAllBuckets(), key);
-			index = prefList.indexOf(coordinator);
+			coordinator = PartitionUtils
+					.getCoordinator(cHasher.getAllBuckets(), key);
 			
-			Assert.assertTrue("WTF", (prev_index+1) % prefList.size() == index );
+			if (! prefList.isEmpty()) {
+				Assert.assertTrue("coordinator " + coordinator + " not expected", 
+						coordinator.equals(expected));
+			}
 		}
 		
-		System.out.println("coordinator: " + coordinator + " in " + index);
-		System.out.println("distribution:");
-		printLoadDistribution(cHasher);
-		System.out.println("---------------");
+		System.out.printf("\n");
+		
+		System.out.println("Preference list, asterisk next to the coordinator for key " + key);
+		for (String s : prefList)
+			System.out.println(s + (s.equals(coordinator) ? " *" : ""));
 	}
 
 }
