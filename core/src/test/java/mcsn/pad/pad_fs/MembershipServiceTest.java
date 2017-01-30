@@ -46,13 +46,13 @@ public class MembershipServiceTest {
 		services = null;
 	}
 
-	//@Test
+	@Test
 	public void gossipTest() throws FileNotFoundException, JSONException, IOException, InterruptedException {
 		// Each member should know dim-1 friends
 		checkIfCorrect(services, dim-1);
 	}
 	
-	//@Test
+	@Test
 	public void gossipTestWithFailures() throws InterruptedException, FileNotFoundException, JSONException, IOException {
 		// Each member should know dim-1 friends
 		checkIfCorrect(services, dim-1);
