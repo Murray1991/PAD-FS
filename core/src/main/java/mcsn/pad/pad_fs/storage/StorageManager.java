@@ -30,8 +30,7 @@ public class StorageManager extends Thread {
 	public StorageManager(IStorageService storageService, String host, int port) {
 		this.storageService = storageService;
 		
-		//TODO check the "parallelism degree"
-		taskPool = Executors.newFixedThreadPool(50);
+		taskPool = Executors.newCachedThreadPool();
 		isRunning = new AtomicBoolean(true);
 		
 		try {

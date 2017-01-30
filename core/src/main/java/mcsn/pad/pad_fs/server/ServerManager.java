@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import mcsn.pad.pad_fs.storage.IStorageService;
 
 public class ServerManager extends Thread {
 
+	private final ExecutorService taskPool;
 	private IStorageService storageService;
 	private ServerSocket serverSocket;
 	private boolean listening;
@@ -20,6 +23,7 @@ public class ServerManager extends Thread {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		this.taskPool = Executors.newCachedThreadPool();
 	}
 	
 	@Override
@@ -33,9 +37,8 @@ public class ServerManager extends Thread {
 		while (listening) {
 			Socket sck = null;
 			try {
-				//TODO maybe use executor with a fixed thread pool
 				sck = serverSocket.accept();
-				new ServerThread(sck, storageService).start();
+				taskPool.submit(new ServerThread(sck, storageService));
 			} catch (IOException e) {
 				System.out.println("Socket closed in Server Manager");
 			}
