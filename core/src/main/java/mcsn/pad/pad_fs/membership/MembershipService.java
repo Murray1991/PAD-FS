@@ -4,16 +4,13 @@ import java.lang.Thread.State;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
 import java.util.logging.Logger;
 
 import com.google.code.gossip.GossipMember;
 import com.google.code.gossip.GossipService;
 import com.google.code.gossip.GossipSettings;
 import com.google.code.gossip.LocalGossipMember;
-import it.cnr.isti.hpclab.consistent.ConsistentHasher;
-import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
+
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
 
@@ -83,23 +80,33 @@ public class MembershipService implements IMembershipService {
 	
 	@Override
 	public Member getMyself() {
-		LocalGossipMember member = gossipService.get_gossipManager().getMyself();
+		LocalGossipMember member = gossipService
+				.get_gossipManager()
+				.getMyself();
+		
+		Assert.assertTrue(member.getHost().equals(host));
 		return new Member(member.getHost(), member.getPort(), member.getHeartbeat(), member.getHost());
 	}
 	
 	@Override
 	public List<Member> getMembers() {
+		
 		List<Member> members = new ArrayList<>();
 		List<LocalGossipMember> localMembers = gossipService
 				.get_gossipManager()
 				.getMemberList();
 		
+		Member myself = getMyself();
 		for (LocalGossipMember member : localMembers) {
-			//TODO controllare se faccio bene...
-			Member m = new Member(member.getHost(), member.getPort(), member.getHeartbeat(), member.getHost());
-			if (!getMyself().equals(m)) {
+			Member m = new Member(member.getHost(), 
+					member.getPort(), 
+					member.getHeartbeat(), 
+					member.getHost());
+			
+			if (! m.equals(myself)) {
 				members.add(m);
 			}
+			
 		}
 		return members;
 	}
@@ -120,56 +127,21 @@ public class MembershipService implements IMembershipService {
 	}
 	
 	@Override
-	public List<Member> getPreferenceList() throws InterruptedException {
-		//TODO do this with virtual nodes and a degree factor
-		ConsistentHasher<Member, String> cHasher = getConsistentHasher("a");
-		List<Member> sortedBuckets = new ArrayList<Member>();
-		Map<Member, List<String>> map;
-		while (cHasher.getAllBuckets().size() != 0) {
-			map = cHasher.getAllBucketsToMembersMapping();
-			for (Map.Entry<Member, List<String>> e : map.entrySet()) {
-				if (e.getValue().size() != 0 || cHasher.getAllBuckets().size() == 1) {
-					sortedBuckets.add(e.getKey());
-					cHasher.removeBucket(e.getKey());
-					break;
-				}
-			}
-		}
-		return sortedBuckets;
+	public List<Member> getPreferenceList(String key, int N) throws InterruptedException {
+		List<Member> members = getMembers();
+		members.add(getMyself());
+		return PartitionUtils.getPreferenceList(members, key, N);
 	}
 	
 	@Override
 	public Member getCoordinator(String key) {
-		Member coordinator = null;
-		ConsistentHasher<Member, String> cHasher = getConsistentHasher(key);
-		Map<Member, List<String>> map = cHasher.getAllBucketsToMembersMapping();
-		Assert.assertTrue(map.size() > 0);
-		for (Map.Entry<Member, List<String>> e : map.entrySet()) {
-			if (e.getValue().size() != 0) {
-				coordinator = e.getKey();
-				break;
-			}
-		}
-		//TODO investigare... la ragione per cui coordinator puo' essere null
-		return coordinator == null ? getMyself() : coordinator;
+		List<Member> members = getMembers();
+		members.add(getMyself());
+		return PartitionUtils.getCoordinator(members, key);
 	}
 	
 	@Override
 	public String toString() {
 		return "MembershipService@"+getMyself();
-	}
-	
-	private ConsistentHasher<Member, String> getConsistentHasher(String key) {
-		ConsistentHasher<Member, String> cHasher = new ConsistentHasherImpl<>(
-				1, 
-				new MemberByteConverter(), 
-				ConsistentHasher.getStringToBytesConverter(),
-				ConsistentHasher.SHA1);
-		List<Member> list = getMembers();
-		list.add(getMyself());
-		for (Member m : list)
-			cHasher.addBucket(m);
-		cHasher.addMember(key);
-		return cHasher;
 	}
 }

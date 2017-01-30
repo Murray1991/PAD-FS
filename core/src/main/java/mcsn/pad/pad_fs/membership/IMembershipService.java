@@ -8,7 +8,7 @@ public interface IMembershipService extends IService {
 	
 	public List<Member> getMembers();
 	
-	public List<Member> getPreferenceList() throws InterruptedException;
+	public List<Member> getPreferenceList(String key, int N) throws InterruptedException;
 	
 	public Member getCoordinator(String key);
 

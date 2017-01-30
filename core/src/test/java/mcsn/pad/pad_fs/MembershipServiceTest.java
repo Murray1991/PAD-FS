@@ -36,7 +36,7 @@ public class MembershipServiceTest {
 		}
 		
 		TestUtils.startServices(services);
-		Thread.sleep(6000);
+		Thread.sleep(10000);
 	}
 	
 	@After
@@ -46,13 +46,13 @@ public class MembershipServiceTest {
 		services = null;
 	}
 
-	@Test
+	//@Test
 	public void gossipTest() throws FileNotFoundException, JSONException, IOException, InterruptedException {
 		// Each member should know dim-1 friends
 		checkIfCorrect(services, dim-1);
 	}
 	
-	@Test
+	//@Test
 	public void gossipTestWithFailures() throws InterruptedException, FileNotFoundException, JSONException, IOException {
 		// Each member should know dim-1 friends
 		checkIfCorrect(services, dim-1);
@@ -149,12 +149,17 @@ public class MembershipServiceTest {
 	}
 	
 	private Member getCoordinator(List<IService> services, String key) {
-		Member p = ((MembershipService) services.get(0)).getCoordinator(key);
+		MembershipService msp = (MembershipService) services.get(0);
+		Member p = msp.getCoordinator(key);
+		List<Member> mspMembers = msp.getMembers();
 		for (IService service : services) {
-			Member m = ((MembershipService) service).getCoordinator(key);
+			MembershipService msm = (MembershipService) service;
+			Member m = msm.getCoordinator(key);
 			Assert.assertNotNull(p);
 			Assert.assertNotNull(m);
-			Assert.assertTrue(p.equals(m));
+			List<Member> msmMembers = msm.getMembers();
+			Assert.assertTrue(printInfo(p, mspMembers) + printInfo(m, msmMembers), 
+					p.equals(m));
 		}
 		return p;
 	}
