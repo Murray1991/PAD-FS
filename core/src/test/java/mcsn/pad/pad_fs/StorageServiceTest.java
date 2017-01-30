@@ -119,24 +119,34 @@ public class StorageServiceTest {
 		System.out.println("-- wait...");
 		Thread.sleep(6000);
 		
+		checkIfCorrect(mServices, dim-1);
+		
 		System.out.println("-- shutdown all the gossip services...");
 		TestUtils.shutdownServices(mServices);
 		Thread.sleep(6000);
+		
+		checkIfCorrect(mServices, 0);
 		
 		System.out.println("-- put different values with same key in two different nodes...");
 		List<Serializable> keys = createKeys(30);
 		List<Map<Serializable, ClientMessage>> list = new ArrayList<>();
 		Random rand = new Random();
+		final int index = rand.nextInt(dim);
+		
 		for (int i=0; i<2; i++) {
-			final Map<Serializable, ClientMessage> msgs = createMessages(Message.PUT, keys);
-			final int idx = rand.nextInt(dim);
+				
+			Map<Serializable, ClientMessage> msgs = 
+					createMessages(Message.PUT, keys);
+			
+			int idx = (index+i)%dim;
+			System.out.println("-- send put messages to " + sServices.get(idx));
+			for (Serializable key : msgs.keySet()) {
+				StorageService ss = (StorageService) sServices.get(idx);
+				ClientMessage res = ss.deliverMessage(msgs.get(key));
+				Assert.assertTrue(res.status == Message.SUCCESS);
+			}
+			
 			list.add(msgs);
-			new Thread( () -> {
-				for (Serializable key : msgs.keySet()) {
-					StorageService ss = (StorageService) sServices.get(idx);
-					ss.deliverMessage(msgs.get(key));
-				}
-			}).start();
 		}
 		
 		Thread.sleep(2000);
@@ -145,18 +155,26 @@ public class StorageServiceTest {
 		TestUtils.startServices(mServices);
 		
 		System.out.println("-- wait...");
-		Thread.sleep(16000);
+		Thread.sleep(20000);
+		
+		checkIfCorrect(mServices, dim-1);
+		
+		Map<Serializable, ClientMessage> getMessages =
+				createMessages(Message.GET, keys);
 		
 		System.out.println("-- concurrency test...");
-		Map<Serializable, ClientMessage> getMessages = createMessages(Message.GET, keys);
 		for (int i=0; i<2; i++) {
+			
 			for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
 				int idx = rand.nextInt(dim);
-				ClientMessage res = 
-						((StorageService) sServices.get(idx))
-						.deliverMessage(e.getValue());
+				StorageService ss = (StorageService) sServices.get(idx);
+				ClientMessage res = ss.deliverMessage(e.getValue());
+				
+				Assert.assertTrue("type: " + res.status, res.status == Message.SUCCESS);
+				
 				byte[] exp = list.get(i).get(e.getKey()).value.getValue();
 				byte[] res1 = res.value.getValue();
+				
 				Assert.assertNotNull(res.values);
 				byte[] res2 = res.values.get(0).getValue();
 				Assert.assertTrue( "something is wrong... ",
@@ -169,22 +187,26 @@ public class StorageServiceTest {
 			keys.remove(idx);
 		}
 		
+		/* keys to remove */
+		Map<Serializable, ClientMessage> removeMessages = 
+				createMessages(Message.REMOVE, keys);
+		
 		System.out.println("-- remove some keys...");
-		final Map<Serializable, ClientMessage> removeMessages = createMessages(Message.REMOVE, keys);
 		for (Entry<Serializable, ClientMessage> e : removeMessages.entrySet()) {
 			int idx = rand.nextInt(dim);
-			ClientMessage res = ((StorageService) sServices.get(idx))
-					.deliverMessage(e.getValue());
+			StorageService ss = (StorageService) sServices.get(idx);
+			ClientMessage res = ss.deliverMessage(e.getValue());
 			Assert.assertTrue(res.status == Message.SUCCESS);
+			for (int i=0; i<dim; i++)
+				Assert.assertNull("index i="+i, lStores.get(i).get(e.getKey()));
 		}
 		
 		System.out.println("-- try to get the removed keys...");
 		getMessages = createMessages(Message.GET, keys);
 		for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
 			int idx = rand.nextInt(dim);
-			ClientMessage res = 
-					((StorageService) sServices.get(idx))
-					.deliverMessage(e.getValue());
+			StorageService ss = (StorageService) sServices.get(idx);
+			ClientMessage res = ss.deliverMessage(e.getValue());
 			Assert.assertTrue("status: "+res.status, res.status == Message.NOT_FOUND);
 		}
 	}
@@ -236,7 +258,10 @@ public class StorageServiceTest {
 		while (it.hasNext()) {
 			ClientMessage msg = map.get(it.next());
 			int idx = (Math.abs(msg.key.hashCode()) % sServices.size()) + 1;
-			((StorageService) sServices.get(idx-1)).deliverMessage(msg);
+			StorageService ss = (StorageService) sServices.get(idx-1);
+
+			ClientMessage rcvMsg = ss.deliverMessage(msg);
+			Assert.assertTrue("status type: " + rcvMsg.status, rcvMsg.status == Message.SUCCESS);
 		}
 	}
 	
@@ -284,6 +309,13 @@ public class StorageServiceTest {
 							map.get(key).value
 							) 
 					); 
+		}
+	}
+	
+	private void checkIfCorrect(List<IService> services, int expected) {
+		for (IService service : services) {
+			MembershipService ms = (MembershipService) service;
+			Assert.assertTrue(ms.getMembers().size() == expected);
 		}
 	}
 	

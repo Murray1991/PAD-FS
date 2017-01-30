@@ -97,7 +97,7 @@ public class StorageService implements IStorageService {
 				msg.key != null ? (String) msg.key : "");
 		Member myself = membershipService.getMyself();
 		ClientMessage rcvMsg = null;
-		if (coordinator.equals(myself) || msg.type == Message.LIST) {
+		if (coordinator.equals(myself) || msg.type == Message.REMOVE && !msg.removeFlag || msg.type == Message.LIST) {
 			resolveMessage(msg);
 			rcvMsg = msg;
 		} else {
