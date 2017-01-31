@@ -112,7 +112,7 @@ public class ClientRunner {
 	        	}
 	        }
 	        
-	        if (dataVector != null && outputPathFile != null) {
+	        if (dataVector != null && outputPathFile == null) {
 	        	for (int i = 0; i < dataVector.size(); i++) {
 	        		System.out.println(new String(dataVector.get(i).getValue()));
 	        	}
