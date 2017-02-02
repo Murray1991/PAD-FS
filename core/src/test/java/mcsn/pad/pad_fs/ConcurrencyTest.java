@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -21,10 +19,11 @@ import org.junit.Test;
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
 import mcsn.pad.pad_fs.common.IService;
-import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.membership.MembershipService;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.client.GetMessage;
+import mcsn.pad.pad_fs.message.client.PutMessage;
 import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -85,7 +84,7 @@ public class ConcurrencyTest {
 		TestUtils.startServices(mServices);
 		TestUtils.startServices(sServices);
 		
-		map = createMessages(Message.PUT, createKeys(num));
+		map = TestUtils.createMessages(Message.PUT, TestUtils.createKeys(num));
 		Thread.sleep(8000);
 	}
 	
@@ -98,35 +97,26 @@ public class ConcurrencyTest {
 		TestUtils.checkValues(map, lStores);
 	}
 	
-	void printMembers(MembershipService ms) {
-		System.out.println("Members of " + ms.getMyself().host + ":");
-		for (Member m : ms.getMembers())
-			System.out.println(m.host);
-	}
-	
 	@Test
 	public void test() throws InterruptedException {
 		
-		printMembers((MembershipService) mServices.get(0));
-		printMembers((MembershipService) mServices.get(2));
-		
 		System.out.println("-- deliver messages at random among the sServices");
-		deliverMessages(map, sServices);
+		TestUtils.deliverMessages(map, sServices);
 		System.out.println("-- done");
 		Thread.sleep(6000);
 		
 		/* two "islands" [1,2] and [4,5] are present */
-		checkIfCorrect(mServices, 1);
+		TestUtils.checkIfCorrect(mServices, 1);
 		
 		System.out.println("-- create keys");
-		List<Serializable> keys = createKeys(30);
+		List<Serializable> keys = TestUtils.createKeys(30);
 		List<Map<Serializable, ClientMessage>> list = new ArrayList<>();
 		Random rand = new Random();
 		
 		System.out.println("-- ship messages with same key but different values to two different islands");
 		for (int i=0; i<2; i++) {
 			Map<Serializable, ClientMessage> msgs = 
-					createMessages(Message.PUT, keys);
+					TestUtils.createMessages(Message.PUT, keys);
 			int idx = i == 0 ? 0 : 2;
 			for (Serializable key : msgs.keySet()) {
 				StorageService ss = (StorageService) sServices.get(idx);
@@ -144,69 +134,31 @@ public class ConcurrencyTest {
 		System.out.println("-- wait...");
 		Thread.sleep(20000);
 		
-		checkIfCorrect(mServices, dim-1);
+		TestUtils.checkIfCorrect(mServices, dim-1);
 		Map<Serializable, ClientMessage> getMessages =
-				createMessages(Message.GET, keys);
+				TestUtils.createMessages(Message.GET, keys);
 		
 		System.out.println("-- concurrency test...");
 		for (int i=0; i<2; i++) {
 			for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
+				Serializable key = e.getKey();
+				GetMessage get = (GetMessage) e.getValue();
+				
 				int idx = rand.nextInt(dim-1);
 				StorageService ss = (StorageService) sServices.get(idx);
-				ClientMessage res = ss.deliverMessage(e.getValue());	
-				Assert.assertTrue("type: " + res.status, res.status == Message.SUCCESS);
+				GetMessage res = (GetMessage) ss.deliverMessage(get);
+				
+				Assert.assertTrue(res.status == Message.SUCCESS);
 				Assert.assertNotNull(res.values);
 				
-				byte[] exp = list.get(i).get(e.getKey()).value.getValue();
+				PutMessage pmsg = (PutMessage) list.get(i).get(key);
+				byte[] exp = pmsg.value.getValue();
 				byte[] res1 = res.values.get(0).getValue();
 				byte[] res2 = res.values.get(1).getValue();
 				Assert.assertTrue( "something is wrong... ",
 						Arrays.equals(exp, res1) || Arrays.equals(exp, res2));
 			}
 		}
-	}
-	
-	private void checkIfCorrect(List<IService> services, int expected) {
-		for (IService service : services) {
-			MembershipService ms = (MembershipService) service;
-			Assert.assertTrue(ms.getMembers().size() == expected);
-		}
-	}
-	
-	private void deliverMessages(Map<Serializable, ClientMessage> map, List<IService> sServices) {
-		Iterator<Serializable> it = map.keySet().iterator();
-		while (it.hasNext()) {
-			ClientMessage msg = map.get(it.next());
-			int idx = (Math.abs(msg.key.hashCode()) % sServices.size()) + 1;
-			StorageService ss = (StorageService) sServices.get(idx-1);
-
-			ClientMessage rcvMsg = ss.deliverMessage(msg);
-			Assert.assertTrue("status type: " + rcvMsg.status, rcvMsg.status == Message.SUCCESS);
-		}
-	}
-	
-	private Map<Serializable, ClientMessage> createMessages(int type, List<Serializable> keys) {
-		Map<Serializable, ClientMessage> map = new HashMap<>();
-		for (Serializable key : keys)
-			switch (type) {
-			case Message.PUT:
-				map.put(key, new ClientMessage(type, key, 
-						TestUtils.getVersioned(TestUtils.getRandomString().getBytes())));
-				break;
-			case Message.GET:
-			case Message.REMOVE:
-				map.put(key, new ClientMessage(type, key, true));
-			default:
-				break;
-			}
-		return map;
-	}
-	
-	private List<Serializable> createKeys(int num) {
-		List<Serializable> keys = new ArrayList<>();
-		for (int i=0; i<num; i++)
-			keys.add(TestUtils.getRandomString());
-		return keys;
 	}
 
 }

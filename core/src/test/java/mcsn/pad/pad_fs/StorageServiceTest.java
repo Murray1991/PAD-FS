@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,6 +22,9 @@ import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.membership.MembershipService;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.client.GetMessage;
+import mcsn.pad.pad_fs.message.client.ListMessage;
+import mcsn.pad.pad_fs.message.client.PutMessage;
 import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -71,8 +72,8 @@ public class StorageServiceTest {
 	public void testWithoutUpdates() throws FileNotFoundException, JSONException, IOException, InterruptedException {
 		
 		System.out.println("-- deliver messages to the system");
-		map = createMessages(Message.PUT, createKeys(num));
-		deliverMessages(map, sServices);
+		map = TestUtils.createMessages(Message.PUT, TestUtils.createKeys(num));
+		TestUtils.deliverMessages(map, sServices);
 		System.out.println("-- wait...");
 		Thread.sleep(20000);
 		
@@ -127,10 +128,10 @@ public class StorageServiceTest {
 		checkIfCorrect(mServices, 0);
 		
 		System.out.println("-- put different values with same key in two different nodes");
-		List<Serializable> keys = createKeys(30);
+		List<Serializable> keys = TestUtils.createKeys(30);
 		List<Map<Serializable, ClientMessage>> list = new ArrayList<>();
 		for (int idx = 0; idx < 2; idx++) {				
-			Map<Serializable, ClientMessage> msgs = createMessages(Message.PUT, keys);
+			Map<Serializable, ClientMessage> msgs = TestUtils.createMessages(Message.PUT, keys);
 			for (Serializable key : msgs.keySet()) {
 				StorageService ss = (StorageService) sServices.get(idx);
 				ClientMessage res = ss.deliverMessage(msgs.get(key));
@@ -148,16 +149,20 @@ public class StorageServiceTest {
 		checkIfCorrect(mServices, dim-1);
 		
 		System.out.println("-- get \"concurrent\" messages");
-		Map<Serializable, ClientMessage> getMessages = createMessages(Message.GET, keys);
+		Map<Serializable, ClientMessage> getMessages = TestUtils.createMessages(Message.GET, keys);
 		for (int i=0; i<2; i++) {
+			
 			for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
+				
 				int idx = Math.abs(e.hashCode()) % dim;
 				StorageService ss = (StorageService) sServices.get(idx);
-				ClientMessage res = ss.deliverMessage(e.getValue());
+				GetMessage res = (GetMessage) ss.deliverMessage(e.getValue());
+				
 				Assert.assertTrue(res.status == Message.SUCCESS);
 				Assert.assertNotNull(res.values);
 				
-				byte[] exp = list.get(i).get(e.getKey()).value.getValue();
+				PutMessage sentMsg = (PutMessage) list.get(i).get(e.getKey());
+				byte[] exp = sentMsg.value.getValue();
 				byte[] res1 = res.values.get(0).getValue();
 				byte[] res2 = res.values.get(1).getValue();
 				Assert.assertTrue( 
@@ -165,6 +170,7 @@ public class StorageServiceTest {
 						+ new String(res1).substring(0, 5) + " -- "
 						+ new String(res2).substring(0, 5),
 						Arrays.equals(exp, res1) || Arrays.equals(exp, res2));
+				
 			}
 		}
 		
@@ -172,7 +178,7 @@ public class StorageServiceTest {
 		keys.removeIf( k -> rand.nextInt(10) < 5);
 		
 		System.out.println("-- remove some keys...");
-		Map<Serializable, ClientMessage> rmMessages = createMessages(Message.REMOVE, keys);
+		Map<Serializable, ClientMessage> rmMessages = TestUtils.createMessages(Message.REMOVE, keys);
 		for (Entry<Serializable, ClientMessage> e : rmMessages.entrySet()) {
 			int idx = Math.abs(e.hashCode()) % dim;
 			StorageService ss = (StorageService) sServices.get(idx);
@@ -188,7 +194,7 @@ public class StorageServiceTest {
 		}
 		
 		System.out.println("-- try to get the removed keys");
-		getMessages = createMessages(Message.GET, keys);
+		getMessages = TestUtils.createMessages(Message.GET, keys);
 		for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
 			int idx = rand.nextInt(dim);
 			StorageService ss = (StorageService) sServices.get(idx);
@@ -203,65 +209,26 @@ public class StorageServiceTest {
 		testWithoutUpdates();
 		
 		System.out.println("-- send list message");
-		ClientMessage msg = new ClientMessage(Message.LIST);
+		ListMessage msg = new ListMessage();
 		int idx = Math.abs(msg.hashCode()) % dim;
 		
 		StorageService ss = (StorageService) sServices.get(idx);
-		ClientMessage rcvMsg = ss.deliverMessage(msg);
-		Assert.assertTrue(rcvMsg.keys.size() == num);
-	}
-	
-	private Map<Serializable, ClientMessage> createMessages(int type, List<Serializable> keys) {
-		Map<Serializable, ClientMessage> map = new HashMap<>();
-		for (Serializable key : keys)
-			switch (type) {
-			case Message.PUT:
-				map.put(key, new ClientMessage(type, key, 
-						TestUtils.getVersioned(TestUtils.getRandomString().getBytes())));
-				break;
-			case Message.GET:
-			case Message.REMOVE:
-				map.put(key, new ClientMessage(type, key, true));
-			default:
-				break;
-			}
-		return map;
-	}
-	
-	private List<Serializable> createKeys(int num) {
-		List<Serializable> keys = new ArrayList<>();
-		for (int i=0; i<num; i++)
-			keys.add(TestUtils.getRandomString());
-		return keys;
-	}
-	
-	private void deliverMessages(Map<Serializable, ClientMessage> map, List<IService> sServices) {
-		Iterator<Serializable> it = map.keySet().iterator();
-		while (it.hasNext()) {
-			ClientMessage msg = map.get(it.next());
-			int idx = (Math.abs(msg.key.hashCode()) % sServices.size()) + 1;
-			StorageService ss = (StorageService) sServices.get(idx-1);
-
-			ClientMessage rcvMsg = ss.deliverMessage(msg);
-			Assert.assertTrue("status type: " + rcvMsg.status, rcvMsg.status == Message.SUCCESS);
-		}
+		ListMessage res = (ListMessage) ss.deliverMessage(msg);
+		Assert.assertTrue(res.keys.size() == num);
 	}
 	
 	private void updateAndDeliverMessages(Map<Serializable, ClientMessage> map, List<IService> sServices) {
 		Random rand = new Random();
+		int bound = sServices.size();
 		for (Serializable key : map.keySet()) {
 			if (rand.nextInt(10) <= 3) {
-				ClientMessage msg = 
-						new ClientMessage(
-							Message.PUT, 
-							key, 
-							TestUtils.getVersioned(
-									TestUtils.getRandomString().getBytes()
-									)
-						);
+				int idx = rand.nextInt(bound);
+				
+				ClientMessage msg = new PutMessage(key, TestUtils.getRandomString().getBytes());
 				map.put(key, msg);
-				int idx = (Math.abs(msg.key.hashCode()) % sServices.size()) + 1;
-				((StorageService) sServices.get(idx-1)).deliverMessage(msg);
+				
+				StorageService ss = (StorageService) sServices.get(idx);
+				ss.deliverMessage(msg);
 			}
 		}
 	}

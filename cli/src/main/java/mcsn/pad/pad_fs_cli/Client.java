@@ -10,6 +10,10 @@ import java.nio.file.Paths;
 
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.client.GetMessage;
+import mcsn.pad.pad_fs.message.client.ListMessage;
+import mcsn.pad.pad_fs.message.client.PutMessage;
+import mcsn.pad.pad_fs.message.client.RemoveMessage;
 import voldemort.versioning.Versioned;
 
 public class Client {
@@ -31,13 +35,15 @@ public class Client {
 		Socket sck = new Socket(raddr.getAddress(), raddr.getPort());
 		ClientMessage sendMsg = null;
 		if (type == Message.LIST) {
-			sendMsg = new ClientMessage(type);
-		} else if (type == Message.REMOVE || type == Message.GET) {
-			sendMsg = new ClientMessage(type, values[0], true);
+			sendMsg = new ListMessage();
+		} else if (type == Message.REMOVE) {
+			sendMsg = new RemoveMessage(values[0]);
+		} else if (type == Message.GET) {
+			sendMsg = new GetMessage(values[0]);
 		} else if (type == Message.PUT) {
 			Versioned<byte[]> value = values.length > 1 ? 
 					getVersionedFromString(values[1]) : getVersionedFromFile(values[0]);
-			sendMsg = new ClientMessage(type, values[0], value);
+			sendMsg = new PutMessage(values[0], value);
 		}
 		ClientMessage rcvMsg = request(sendMsg, sck);
 		sck.close();

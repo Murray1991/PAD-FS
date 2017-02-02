@@ -24,6 +24,7 @@ import org.junit.Test;
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.client.PutMessage;
 import mcsn.pad.pad_fs.server.ServerService;
 import mcsn.pad.pad_fs.utils.DummyService;
 import mcsn.pad.pad_fs.utils.TestUtils;
@@ -59,13 +60,14 @@ public class ServerServiceTest {
 		
 		for ( Versioned<byte[]> e : list ) {
 			Socket sck = new Socket(addr, 8080);
-			ClientMessage sendMsg = 
-					new ClientMessage(Message.PUT, TestUtils.nextSessionId(new SecureRandom()), e);
-			ClientMessage rcvMsg = request(sendMsg, sck);
+			PutMessage sendMsg = new PutMessage(TestUtils
+					.nextSessionId(new SecureRandom()), e);
+			PutMessage rcvMsg = (PutMessage) request(sendMsg, sck);
 			boolean b = 
 					sendMsg.key.equals(rcvMsg.key) &&
 					sendMsg.type == rcvMsg.type && 
 					! sendMsg.value.equals(rcvMsg.value);
+			
 			//The server returns a properly formatted message according to the DummyService
 			Assert.assertTrue(b);
 			sck.close();
@@ -86,18 +88,17 @@ public class ServerServiceTest {
 		       new ExecutorCompletionService<Boolean>(executor);
 		
 		for ( Versioned<byte[]> e : list) {
-			ClientMessage sendMsg = 
-					new ClientMessage(Message.PUT, TestUtils.nextSessionId(new SecureRandom()), e);
+			PutMessage msg = new PutMessage(TestUtils.nextSessionId(new SecureRandom()), e);
 			completionService.submit(new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
 					Socket sck = new Socket(addr, 8080);
-					ClientMessage rcvMsg = request(sendMsg, sck);
+					PutMessage res = (PutMessage) request(msg, sck);
 					sck.close();
 					boolean b = 
-							sendMsg.key.equals(rcvMsg.key) &&
-							sendMsg.type == rcvMsg.type && 
-							! sendMsg.value.equals(rcvMsg.value);
+							msg.key.equals(res.key) &&
+							msg.type == res.type && 
+							! msg.value.equals(res.value);
 					
 					return new Boolean(b);
 				}

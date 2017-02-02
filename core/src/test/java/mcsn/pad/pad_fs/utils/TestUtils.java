@@ -8,6 +8,7 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -16,13 +17,17 @@ import java.util.Vector;
 
 import org.json.JSONException;
 
-import it.cnr.isti.hpclab.consistent.ConsistentHasher;
-import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.Node;
 import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.common.Utils;
+import mcsn.pad.pad_fs.membership.MembershipService;
 import mcsn.pad.pad_fs.message.ClientMessage;
+import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.client.GetMessage;
+import mcsn.pad.pad_fs.message.client.PutMessage;
+import mcsn.pad.pad_fs.message.client.RemoveMessage;
+import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.VectorClock;
@@ -144,96 +149,89 @@ public class TestUtils {
 	    return new BigInteger(100, random).toString(32);
 	}
 	
-	public static ClientMessage randomMessage(ClientMessage msg) {
-		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
-		return new ClientMessage(msg.type, msg.key, value);
-	}
-	
-	public static ClientMessage randomMessage(int type) {
-		String key = TestUtils.nextSessionId(new SecureRandom()); 
-		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
-		return new ClientMessage(type, key, value);
-	}
-	
-	public static void printBucketDistribution() {
+	/**
+	 * get a list of random elements
+	 */
+	public static List<Versioned<byte[]>> getElements(int dim) {
 		Random random = new Random(System.currentTimeMillis());
-		List<Integer> buckets = new ArrayList<>();
-		for (int i = 0; i < 10; i++)
-			buckets.add(random.nextInt(Integer.MAX_VALUE) / 5);
-		List<Integer> members = new ArrayList<>();
-		for (int i = 0; i < 10000; i++)
-			members.add(random.nextInt());
-		Map<Integer, Map<Double, Integer>> result = ConsistentHasherImpl
-				.getDistributionPercentage(1, 800,
-						ConsistentHasher.getIntegerToBytesConverter(),
-						ConsistentHasher.getIntegerToBytesConverter(),
-						ConsistentHasher.getSHA1HashFunction(), buckets,
-						members);
-		result.forEach((virtNodeId, map) -> {
-			System.out.println("No of virt nodes : " + virtNodeId);
-			System.out.printf("%5s%10s\n", "%", "BucketId");
-			map.forEach((percent, barray) -> {
-				System.out.printf("%5.2f %d\n", percent, barray);
-			});
-			System.out.println("\n\n");
-		});
-	}
-	
-	public static void printLoadDistribution(ConsistentHasher<String, String> cHasher) {
-		Map<String, List<String>> map = cHasher.getAllBucketsToMembersMapping();
-		for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-			System.out.println(entry.getKey() + " : ");
-			System.out.println("\t"+entry.getValue().size());
+		ArrayList<Versioned<byte[]>> elements = new ArrayList<>();
+		for (int i=0; i<dim; i++) {
+			elements.add( new Versioned<byte[]>( nextSessionId(random).getBytes()) );
 		}
+		return elements;
 	}
 	
+	/**
+	 * get list of dim nodes from gossip.conf file
+	 */
 	public static List<Node> getMembers(int dim) throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		
 		String filename = TestUtils.class.getResource("/gossip.conf").getFile();
 		File configFile = new File(filename);
-		
 		List<Node> members = new ArrayList<>();
 		for (int i = 1; i <= dim; i++) {
 			members.add(i-1,  new Node("127.0.0."+i, configFile, HashMapStore.class));
 		}
-		
 		return members;
 	}
 	
-	public static List<Versioned<byte[]>> getElements(int dim) {
-
-		Random random = new Random(System.currentTimeMillis());
-		ArrayList<Versioned<byte[]>> elements = new ArrayList<>();
+	public static void deliverMessages(Map<Serializable, ClientMessage> map, List<IService> sServices) {
 		
-		for (int i=0; i<dim; i++) {
-			elements.add( new Versioned<byte[]>( nextSessionId(random).getBytes()) );
+		Iterator<Serializable> it = map.keySet().iterator();
+		Random rand = new Random();
+		int bound = sServices.size();
+		
+		while (it.hasNext()) {
+			ClientMessage msg = map.get(it.next());
+			int idx = rand.nextInt(bound);
+			
+			StorageService ss = (StorageService) sServices.get(idx);
+			ClientMessage res = ss.deliverMessage(msg);
+			Assert.assertTrue("status: " + res.status, res.status == Message.SUCCESS);
 		}
 		
-		return elements;
 	}
-
-	public static List<ClientMessage> getMessages(int type, int dim) {
-		List<ClientMessage> list = new ArrayList<>();
-		for (int i = 0; i < dim; i++)
-			list.add(randomMessage(type));
-		return list;
+	
+	public static Map<Serializable, ClientMessage> createMessages(int type, List<Serializable> keys) {
+		
+		Map<Serializable, ClientMessage> map = new HashMap<>();
+		
+		for (Serializable key : keys)
+			switch (type) {
+			case Message.PUT:
+				map.put(key, new PutMessage(key, TestUtils.getRandomString().getBytes()));
+				break;
+			case Message.GET:
+				map.put(key, new GetMessage(key));
+				break;
+			case Message.REMOVE:
+				map.put(key, new RemoveMessage(key));
+			default:
+				break;
+			}
+		
+		return map;
+	}
+	
+	public static void checkIfCorrect(List<IService> services, int expected) {
+		for (IService service : services) {
+			MembershipService ms = (MembershipService) service;
+			Assert.assertTrue(ms.getMembers().size() == expected);
+		}
+	}
+	
+	public static List<Serializable> createKeys(int num) {
+		List<Serializable> keys = new ArrayList<>();
+		for (int i=0; i<num; i++)
+			keys.add(TestUtils.getRandomString());
+		return keys;
 	}
 	
 	public static void checkValues(Map<Serializable, ClientMessage> map, List<LocalStore> lStores){
 		for (Serializable key : map.keySet() ) {
-			
 			int stores = TestUtils.countKey(key, lStores);
-			Assert.assertTrue( stores + " != " + lStores.size(), stores == lStores.size() );
 			
-			Assert.assertTrue( 
-					
-					"[" + new String(getSingleValue(key, lStores.get(0))).substring(0, 5) + " -- " + lStores.get(0).get(key).get(0).getVersion() + "] ;; " + 
-							"[" + new String(getSingleValue(key, lStores.get(1))).substring(0, 5) + lStores.get(1).get(key).get(0).getVersion()  + "] ;;"  +
-							"[" + new String(getSingleValue(key, lStores.get(2))).substring(0, 5) + lStores.get(2).get(key).get(0).getVersion()  + "] ;; " +
-							"[" + new String(getSingleValue(key, lStores.get(3))).substring(0, 5) + lStores.get(3).get(key).get(0).getVersion()  + "] ;;" +
-							"[" + new String(map.get(key).value.getValue()).substring(0, 5) + map.get(key).value.getVersion() + "] ;;" +
-							Utils.compare(map.get(key).value, lStores.get(3).get(key).get(0)) ,
-							
+			Assert.assertTrue( stores + " != " + lStores.size(), stores == lStores.size() );
+			Assert.assertTrue( checkValuesPrintInfo(key, map, lStores),
 					TestUtils.checkValues( 
 							TestUtils.getValues(key, lStores), 
 							lStores.get(0).get(key).get(0)
@@ -243,15 +241,42 @@ public class TestUtils {
 			Assert.assertTrue( 
 					TestUtils.checkValues( 
 							TestUtils.getValues(key, lStores), 
-							map.get(key).value
+							((PutMessage) map.get(key)).value
 							) 
 					); 
 		}
 	}
 	
-	private static byte[] getSingleValue(Serializable key, LocalStore ls) {
-		List<Versioned<byte[]>> vv = ls.get(key);
-		Assert.assertTrue(vv.size() == 1);
-		return vv.get(0).getValue();
+	private static String checkValuesPrintInfo(Serializable key, Map<Serializable, ClientMessage> map, List<LocalStore> lStores) {
+		
+		String info = "";
+		for (LocalStore ls : lStores) {
+			info += "[";
+			List<Versioned<byte[]>> lvv = ls.get(key);
+			Assert.assertTrue(lvv.size() == 1);
+			Versioned<byte[]> vv = lvv.get(0);
+			info += new String(vv.getValue()).substring(0, 5);
+			info += " -- ";
+			info += vv.getVersion();
+			info += "] ;; ";
+		}
+		
+		/* I Know that is a PushMessage! */
+		Versioned<byte[]> vv = ((PutMessage) map.get(key)).value;
+		info += "[";
+		info += new String(vv.getValue()).substring(0,5);
+		info += " -- ";
+		info += vv.getVersion();
+		info += "] ... ";
+		
+		info += Utils.compare(vv, lStores.get(3).get(key).get(0));
+			
+		return info;
+	}
+	
+	public static ClientMessage randomMessage(ClientMessage msg) {
+		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
+		Serializable key = ((PutMessage) msg).key;
+		return new PutMessage(key, value);
 	}
 }

@@ -1,29 +1,21 @@
 package mcsn.pad.pad_fs.message;
 
-import java.io.Serializable;
-import java.util.Vector;
-
-import voldemort.versioning.Versioned;
-
 //TODO maybe better use a different class for each client-type message
 public class ClientMessage extends Message {
 
 	private static final long serialVersionUID = 6819795467160558135L;
 	
+	/*
 	public Serializable key;
 	
 	public Versioned<byte[]> value;
 	
-	/* used for LIST response */
 	public Vector<Serializable> keys;
 
-	/* used for GET response when more concurrent versions are available */
 	public Vector<Versioned<byte[]>> values;
 
-	/* if it's true the message is multicasted to all the stores */
 	public boolean removeFlag;
 	
-	/* PUT constructor */
 	public ClientMessage(int type, Serializable key, Versioned<byte[]> value) {
 		if (!correctType(type, Message.PUT))
 			throw new RuntimeException("Incorrect type for ClientMessage, PUT expected");
@@ -32,7 +24,6 @@ public class ClientMessage extends Message {
 		this.value = value;
 	}
 	
-	/* GET/REMOVE constructor */
 	public ClientMessage(int type, Serializable key, boolean removeFlag) {
 		if (!correctType(type, Message.GET, Message.REMOVE))
 			throw new RuntimeException("Incorrect type for ClientMessage");
@@ -42,7 +33,6 @@ public class ClientMessage extends Message {
 		this.removeFlag = removeFlag;	//it's significative only for REMOVE
 	}
 	
-	/* GET constructor */
 	public ClientMessage(int type, Serializable key) {
 		if (!correctType(type, Message.GET))
 			throw new RuntimeException("Incorrect type for ClientMessage");
@@ -51,7 +41,6 @@ public class ClientMessage extends Message {
 		this.value = new Versioned<byte[]>(null);
 	}
 	
-	/* LIST constructor */
 	public ClientMessage(int type) {
 		if (!correctType(type, Message.LIST))
 			throw new RuntimeException("Incorrect type for ClientMessage");
@@ -85,4 +74,5 @@ public class ClientMessage extends Message {
 		}
 		return false;
 	}
+	*/
 }

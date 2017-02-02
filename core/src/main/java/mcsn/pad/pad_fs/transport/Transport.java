@@ -11,6 +11,8 @@ import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.InternalMessage;
 import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.message.SourceMessage;
+import mcsn.pad.pad_fs.message.client.PutMessage;
+import mcsn.pad.pad_fs.message.client.RemoveMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
@@ -51,47 +53,55 @@ public class Transport {
 	private void onSend(Message msg, int type) {
 		VectorClock vc = storageService.incrementVectorClock();
 		switch (type) {
-		case Message.GET:
-		case Message.LIST:
-			return;
-		case Message.REMOVE:
-		case Message.PUT:
-			ClientMessage cmsg = (ClientMessage) msg;
-			cmsg.value = new Versioned<byte[]>(cmsg.value.getValue(), vc);
-			return;
-		case Message.PUSH:
-		case Message.PULL:
-		case Message.REPLY:
-			/*in the case of anti-entropy message just copy the global vc */
-			InternalMessage imsg = (InternalMessage) msg;
-			imsg.vectorClock = vc;
-			return;
-		default:
-			System.err.println("Bad srcMsg type format: " + type);
-			break;
+			case Message.GET:
+			case Message.LIST:
+				return;
+			case Message.REMOVE:
+				RemoveMessage rmsg = (RemoveMessage) msg;
+				rmsg.value = new Versioned<byte[]>(
+						rmsg.value.getValue(), vc);
+				return;
+			case Message.PUT:
+				PutMessage pmsg = (PutMessage) msg;
+				pmsg.value = new Versioned<byte[]>(
+						pmsg.value.getValue(), vc);
+				return;
+			case Message.PUSH:
+			case Message.PULL:
+			case Message.REPLY:
+				/*in the case of anti-entropy message just copy the global vc */
+				InternalMessage imsg = (InternalMessage) msg;
+				imsg.vectorClock = vc;
+				return;
+			default:
+				System.err.println("Bad srcMsg type format: " + type);
+				break;
 		}
 	}
 	
 	private void onReceive(Message msg, int type) {
 		switch (type) {
-		case Message.GET:
-		case Message.LIST:
-			return;
-		case Message.REMOVE:
-		case Message.PUT:
-			storageService.mergeAndIncrementVectorClock( (VectorClock)
-					((ClientMessage) msg).value.getVersion() );
-			return;
-		case Message.PUSH:
-		case Message.PULL:
-		case Message.REPLY:
-			//Here merge & increment is necessary for possible partition network
-			storageService.mergeAndIncrementVectorClock( 
-					((InternalMessage) msg).vectorClock);
-			return;
-		default:
-			System.err.println("Bad srcMsg type format: " + type);
-			break;
+			case Message.GET:
+			case Message.LIST:
+				return;
+			case Message.REMOVE:
+				storageService.mergeAndIncrementVectorClock( (VectorClock)
+						((RemoveMessage) msg).value.getVersion() );
+				return;
+			case Message.PUT:
+				storageService.mergeAndIncrementVectorClock( (VectorClock)
+						((PutMessage) msg).value.getVersion() );
+				return;
+			case Message.PUSH:
+			case Message.PULL:
+			case Message.REPLY:
+				//Here merge & increment is necessary for possible partition network
+				storageService.mergeAndIncrementVectorClock( 
+						((InternalMessage) msg).vectorClock);
+				return;
+			default:
+				System.err.println("Bad srcMsg type format: " + type);
+				break;
 		}
 	}
 

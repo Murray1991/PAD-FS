@@ -16,6 +16,8 @@ import org.apache.commons.cli.ParseException;
 
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
+import mcsn.pad.pad_fs.message.client.GetMessage;
+import mcsn.pad.pad_fs.message.client.ListMessage;
 import voldemort.versioning.Versioned;
 
 public class ClientRunner {
@@ -71,53 +73,55 @@ public class ClientRunner {
         	}
     	}
     }
-
-	private static void processMessage(ClientMessage msg, String outputPathFile) {
-		
-		if (msg.status == Message.ERROR) {
-        	System.err.println("Error: remote failure, please retry");
-        }
-		
-        if (msg.status == Message.NOT_FOUND) {
-        	System.out.println("Your request is not present in the pad-fs system");
-        }
+    
+    private static void processMessage(ClientMessage msg, String outputPathFile) {
+    	processStatus(msg.status);
+    	if (msg instanceof GetMessage)
+    		processGetMessage((GetMessage) msg, outputPathFile);
+    	if (msg instanceof ListMessage)
+    		processListMessage((ListMessage) msg);
+    }
+    
+    private static void processGetMessage(GetMessage msg, String outputPathFile) {
 
         Vector<Versioned<byte[]>> dataVector = null;
-        if (msg.type == Message.GET && msg.status == Message.SUCCESS) {
+        if (msg.status == Message.SUCCESS) {
         	dataVector = msg.values;
         }
         
         try {
-	        
-	        if (dataVector != null && outputPathFile != null) {
-	        	
-	        	System.out.println("saving value in \"" + outputPathFile + "\"");
-	        	new File(outputPathFile).createNewFile();
-	        	Files.write(Paths.get(outputPathFile), dataVector.get(0).getValue());
-	        	
-	        	for (int i = 1; i < dataVector.size(); i++) {
-	        		String out = outputPathFile+i;
-	        		System.out.println("saving concurrent value in \"" + out + "\"");
-		        	new File(outputPathFile+i).createNewFile();
+	        for (int i = 0 ; i < dataVector.size(); i++)
+	        	if (outputPathFile != null) {
+	        		String out = outputPathFile + ( i > 0 ? i : "" );
+	        		System.out.println("saving value in \"" + out + "\"");
+		        	new File(out).createNewFile();
 		        	Files.write(Paths.get(out), dataVector.get(i).getValue());
-	        	}
-	        	
-	        }
-	        
-	        if (dataVector != null && outputPathFile == null) {
-	        	for (int i = 0; i < dataVector.size(); i++) {
+		        	
+	        	} else {
 	        		System.out.println(new String(dataVector.get(i).getValue()));
 	        	}
-	        }
-	        
-	        if (msg.type == Message.LIST && msg.keys != null && msg.status == Message.SUCCESS) {
-	        	for (Serializable key : msg.keys)
-	        		System.out.println(key);
-	        }
-	        
+
         } catch (IOException e) {
 			System.err.println("Impossible saving in " + outputPathFile);
 		}
+    }
+
+	private static void processListMessage(ListMessage msg) {
+		if (msg.keys != null && msg.status == Message.SUCCESS) {
+        	for (Serializable key : msg.keys)
+        		System.out.println(key);
+        }
+	}
+	
+	private static void processStatus(int status) {
+		if (status == Message.ERROR) {
+        	System.err.println("Error: remote failure, please retry");
+        	System.exit(0);
+        }
 		
+        if (status == Message.NOT_FOUND) {
+        	System.out.println("Your request is not present in the pad-fs system");
+        	System.exit(0);
+        }
 	}
 }
