@@ -81,35 +81,27 @@ public class ClientRunner {
         if (msg.status == Message.NOT_FOUND) {
         	System.out.println("Your request is not present in the pad-fs system");
         }
-        
-        byte[] data = null;
-        if (msg.type == Message.GET && msg.status == Message.SUCCESS ) {
-        	data = msg.value.getValue();
-        }
-        
+
         Vector<Versioned<byte[]>> dataVector = null;
         if (msg.type == Message.GET && msg.status == Message.SUCCESS) {
         	dataVector = msg.values;
         }
         
         try {
-        	
-	        if (data != null && outputPathFile != null) {
-	        	System.out.println("saving in \"" + outputPathFile + "\"");
-	        	new File(outputPathFile).createNewFile();
-	        	Files.write(Paths.get(outputPathFile), data);
-	        }
-	        
-	        if (data != null && outputPathFile == null) {
-	        	System.out.println(new String(data));
-	        }
 	        
 	        if (dataVector != null && outputPathFile != null) {
-	        	for (int i = 0; i < dataVector.size(); i++) {
-	        		System.out.println("saving concurrent copy in \"" + outputPathFile + i + "\"");
+	        	
+	        	System.out.println("saving value in \"" + outputPathFile + "\"");
+	        	new File(outputPathFile).createNewFile();
+	        	Files.write(Paths.get(outputPathFile), dataVector.get(0).getValue());
+	        	
+	        	for (int i = 1; i < dataVector.size(); i++) {
+	        		String out = outputPathFile+i;
+	        		System.out.println("saving concurrent value in \"" + out + "\"");
 		        	new File(outputPathFile+i).createNewFile();
-		        	Files.write(Paths.get(outputPathFile+i), dataVector.get(i).getValue());
+		        	Files.write(Paths.get(out), dataVector.get(i).getValue());
 	        	}
+	        	
 	        }
 	        
 	        if (dataVector != null && outputPathFile == null) {

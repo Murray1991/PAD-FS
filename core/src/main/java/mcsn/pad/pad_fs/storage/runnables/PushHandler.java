@@ -5,6 +5,9 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.PullMessage;
@@ -48,20 +51,19 @@ public class PushHandler implements Runnable {
 	@Override
 	public void run() {
 		ArrayList<Serializable> pullKeys = new ArrayList<>();
-		ArrayList<Serializable> replyKeys = new ArrayList<>();
-		ArrayList<Versioned<byte[]>> replyValues = new ArrayList<>();
+		Map<Serializable, List<Versioned<byte[]>>> replyMap = new HashMap<>();
 		
 		for (int i = 0; i < msg.keys.size(); i++) {
 			Serializable key = msg.keys.get(i);
-			Versioned<byte[]> v1 = msg.values.get(i);
-			Versioned<byte[]> v2 = localStore.get(key);
+			List<Versioned<byte[]>> l2 = localStore.get(key);
+			Versioned<byte[]> v1 = msg.values.get(i).get(0);
+			Versioned<byte[]> v2 = l2 != null ? l2.get(0) : null;
 			
 			int occ = Utils.compare(v1, v2);
 			if (occ == 1) {
 				pullKeys.add(key);
 			} else if (occ == -1) {
-				replyKeys.add(key);
-				replyValues.add(v2);
+				replyMap.put(key, l2);
 			} else if (occ == 0 && !v1.equals(v2)) {
 				/* add for the pull messages in order to ask the values 
 				 * and handle the concurrency case later in the ReplyHandler */
@@ -82,10 +84,10 @@ public class PushHandler implements Runnable {
 		
 		/* send reply messages for the local-updated keys */
 		//TODO send more than one ReplyMessage if all the keys occupy too much space or a threshold number
-		if (replyKeys.size() > 0) {
+		if (replyMap.size() > 0) {
 			try {
 				Transport transport = new Transport(storageService);
-				transport.send(new ReplyMessage(replyKeys, replyValues), raddr);
+				transport.send(new ReplyMessage(replyMap), raddr);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

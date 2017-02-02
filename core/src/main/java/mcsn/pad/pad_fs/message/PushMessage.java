@@ -3,7 +3,11 @@ package mcsn.pad.pad_fs.message;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
+import java.util.stream.Collectors;
+
+import org.junit.Assert;
 
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -17,7 +21,7 @@ public class PushMessage extends InternalMessage {
 	public int storagePort;
 	
 	public Vector<Serializable> keys;
-	public Vector<Versioned<byte[]>> values;
+	public Vector<List<Versioned<byte[]>>> values;
 	
 	public boolean withValue;
 	
@@ -31,10 +35,15 @@ public class PushMessage extends InternalMessage {
 		Iterator<Serializable> itKey = keys.iterator();
 		while (itKey.hasNext()) {
 			Serializable key = itKey.next();
-			Versioned<byte[]> value = localStore.get(key);
+			List<Versioned<byte[]>> values = localStore.get(key);
 			this.keys.add(key);
-			this.values.add(new Versioned<byte[]>(null, value.getVersion()));
+			/* just for practicing with java8, maybe inefficient */
+			this.values.add(values
+					.stream()
+					.map( vv -> new Versioned<byte[]>(null, vv.getVersion()))
+					.collect(Collectors.toList()));
 		}
+		Assert.assertTrue(this.keys.size() == this.values.size());
 	}
 	
 	public PushMessage(Iterable<Serializable> keys, IStorageService storageService) {

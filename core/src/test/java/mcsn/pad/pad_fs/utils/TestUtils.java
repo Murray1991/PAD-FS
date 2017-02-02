@@ -18,8 +18,10 @@ import org.json.JSONException;
 
 import it.cnr.isti.hpclab.consistent.ConsistentHasher;
 import it.cnr.isti.hpclab.consistent.ConsistentHasherImpl;
+import junit.framework.Assert;
 import mcsn.pad.pad_fs.Node;
 import mcsn.pad.pad_fs.common.IService;
+import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -109,7 +111,7 @@ public class TestUtils {
     public static int countKey (Serializable key, List<LocalStore> lStores) {
 		int count = 0;
 		for ( LocalStore l : lStores )
-			count  += (l.get(key) != null ? 1 : 0);
+			count  += (l.get(key) != null && l.get(key).get(0).getValue() != null ? 1 : 0);
 		return count;
 	}
     
@@ -119,7 +121,7 @@ public class TestUtils {
     public static Iterable<Versioned<byte[]>> getValues (Serializable key, List<LocalStore> lStores) {
 		Vector<Versioned<byte[]>> values = new Vector<Versioned<byte[]>>();
 		for ( LocalStore l : lStores )
-			values.add(l.get(key));
+			values.addAll(l.get(key));
 		return values;
 	}
     
@@ -215,5 +217,41 @@ public class TestUtils {
 		for (int i = 0; i < dim; i++)
 			list.add(randomMessage(type));
 		return list;
+	}
+	
+	public static void checkValues(Map<Serializable, ClientMessage> map, List<LocalStore> lStores){
+		for (Serializable key : map.keySet() ) {
+			
+			int stores = TestUtils.countKey(key, lStores);
+			Assert.assertTrue( stores + " != " + lStores.size(), stores == lStores.size() );
+			
+			Assert.assertTrue( 
+					
+					"[" + new String(getSingleValue(key, lStores.get(0))).substring(0, 5) + " -- " + lStores.get(0).get(key).get(0).getVersion() + "] ;; " + 
+							"[" + new String(getSingleValue(key, lStores.get(1))).substring(0, 5) + lStores.get(1).get(key).get(0).getVersion()  + "] ;;"  +
+							"[" + new String(getSingleValue(key, lStores.get(2))).substring(0, 5) + lStores.get(2).get(key).get(0).getVersion()  + "] ;; " +
+							"[" + new String(getSingleValue(key, lStores.get(3))).substring(0, 5) + lStores.get(3).get(key).get(0).getVersion()  + "] ;;" +
+							"[" + new String(map.get(key).value.getValue()).substring(0, 5) + map.get(key).value.getVersion() + "] ;;" +
+							Utils.compare(map.get(key).value, lStores.get(3).get(key).get(0)) ,
+							
+					TestUtils.checkValues( 
+							TestUtils.getValues(key, lStores), 
+							lStores.get(0).get(key).get(0)
+							) 
+					);
+			
+			Assert.assertTrue( 
+					TestUtils.checkValues( 
+							TestUtils.getValues(key, lStores), 
+							map.get(key).value
+							) 
+					); 
+		}
+	}
+	
+	private static byte[] getSingleValue(Serializable key, LocalStore ls) {
+		List<Versioned<byte[]>> vv = ls.get(key);
+		Assert.assertTrue(vv.size() == 1);
+		return vv.get(0).getValue();
 	}
 }

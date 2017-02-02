@@ -1,37 +1,52 @@
 package mcsn.pad.pad_fs.storage.local;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
+import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
 
 public class HashMapStore extends LocalStore {
 	
-	private ConcurrentHashMap<Serializable, Versioned<byte[]>> hmap;
-	
-	private HashMapStore(String name, String prepend) {
-		super(prepend+name);
-		hmap = new ConcurrentHashMap<>();
-	}
+	private ConcurrentHashMap<Serializable, List<Versioned<byte[]>>> hmap;
 	
 	public HashMapStore(String name) {
-		super(name, new HashMapStore(name, "concurrent_"));
+		super(name);
 		hmap = new ConcurrentHashMap<>();
 	}
 	
 	@Override
-	public Versioned<byte[]> get(Serializable key) {
+	public List<Versioned<byte[]>> get(Serializable key) {
 		return hmap.get(key);
 	}
 
 	@Override
 	public void put(Serializable key, Versioned<byte[]> value) {
-		hmap.put(key, value);
+		synchronized(this) {
+			List<Versioned<byte[]>> list = hmap.get(key);
+			int occ = list == null ? 1 : Utils.compare(value, list.get(0));
+			if ( occ == 1 ) 
+				list = new ArrayList<>();
+			if ( occ >= 0 ) {
+				/* in order to avoid duplicates, remove first */
+				list.remove(value);
+				list.add(value);
+				hmap.put(key, list);
+			}
+		}
 	}
 	
 	@Override
-	public void remove(Serializable key) {
+	public void remove(Serializable key, VectorClock vc) {
+		put(key, new Versioned<byte[]>(null, vc));
+	}
+	
+	@Override
+	public void delete(Serializable key) {
 		hmap.remove(key);
 	}
 

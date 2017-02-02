@@ -14,8 +14,6 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.json.JSONException;
-import org.junit.Assert;
-
 import mcsn.pad.pad_fs.common.Configuration;
 import mcsn.pad.pad_fs.common.IService;
 import mcsn.pad.pad_fs.membership.Member;
@@ -99,9 +97,6 @@ public class Node
 				| SecurityException e) {
 			e.printStackTrace();
 		}
-		
-		Assert.assertNotNull("local store is null", dbStore);
-		Assert.assertNotNull("next local store is null", dbStore.getNext());
 		
 		StorageService storageService = 
 				new StorageService(membershipService, dbStore);

@@ -1,25 +1,18 @@
 package mcsn.pad.pad_fs.storage.local;
 
 import java.io.Serializable;
+import java.util.List;
+
 import mcsn.pad.pad_fs.storage.local.IStore;
+import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
 
 public abstract class LocalStore implements IStore<Serializable, byte[]> {
 	
 	private String name;
-	private LocalStore nextLocalStore;
 	
 	public LocalStore(String name) {
 		this.name = name;
-	}
-	
-	public LocalStore(String name, LocalStore nextLocalStore) {
-		this.name = name;
-		this.nextLocalStore = nextLocalStore;
-	}
-	
-	public LocalStore getNext() {
-		return nextLocalStore;
 	}
 	
 	public int size() {
@@ -27,7 +20,7 @@ public abstract class LocalStore implements IStore<Serializable, byte[]> {
 	}
 
 	@Override
-	public Versioned<byte[]> get(Serializable key) {
+	public List<Versioned<byte[]>> get(Serializable key) {
 		return null;
 	}
 
@@ -36,7 +29,11 @@ public abstract class LocalStore implements IStore<Serializable, byte[]> {
 	}
 	
 	@Override
-	public void remove(Serializable key) {
+	public void remove(Serializable key, VectorClock vc) {
+	}
+	
+	@Override
+	public void delete(Serializable key) {
 	}
 
 	@Override

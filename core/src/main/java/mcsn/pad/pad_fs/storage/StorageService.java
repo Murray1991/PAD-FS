@@ -7,9 +7,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.List;
+import java.util.Vector;
 import java.util.logging.Logger;
 
-import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.membership.IMembershipService;
 import mcsn.pad.pad_fs.membership.Member;
@@ -29,7 +30,6 @@ public class StorageService implements IStorageService {
 	private ReplicaManager replicaManager;
 	private IMembershipService membershipService;
 	private LocalStore localStore;
-	private LocalStore concurrentLocalStore;
 	//TODO See if I can set the storageManagerPort in the config file
 	private final int storageManagerPort = 3000; 
 
@@ -41,10 +41,8 @@ public class StorageService implements IStorageService {
 
 
 	public StorageService(IMembershipService membershipService, LocalStore localStore) {
-		Assert.assertNotNull(localStore.getNext());
 		this.membershipService = membershipService;
 		this.localStore = localStore;
-		this.concurrentLocalStore = localStore.getNext();
 		this.host = membershipService.getMyself().host;
 		storageManager = new StorageManager(this, host, storageManagerPort);
 		replicaManager = new ReplicaManager(this, membershipService, 1000, host, storageManagerPort);
@@ -171,40 +169,44 @@ public class StorageService implements IStorageService {
 	private void resolveMessage(ClientMessage msg) {
 		msg.status = Message.UNKNOWN;
 		switch (msg.type) {
+		
 			case Message.GET:
-				msg.value = localStore.get(msg.key);
-				msg.addValue(concurrentLocalStore.get(msg.key));
-				if (msg.value == null)
+				List<Versioned<byte[]>> values = localStore.get(msg.key);
+				if (values != null && values.get(0).getValue() != null) {
+					msg.values = new Vector<>();
+					msg.values.addAll(values);
+				}
+				if (msg.values == null || msg.values.size() == 0)
 					msg.status = Message.NOT_FOUND;
 				break;
+				
 			case Message.PUT:
-				/* only the coordinator put the version
-				 * in the local store. TODO check if ok... */
+				/* only the coordinator put the version in the local store. */
 				msg.value = new Versioned<byte[]>(
 						msg.value.getValue(), 
 						incrementVectorClock());
 				localStore.put(msg.key, msg.value);
-				concurrentLocalStore.remove(msg.key);
 				break;
+				
 			case Message.REMOVE:
-				/* remove only if the msg's version
-				 * is greater than the local value's
-				 * version but multicast anyway if
-				 * removeFlag is true, only the
-				 * coordinator can receive the
-				 * packet with removeFlag setted
-				 * to true */
+				/* remove only if the msg's version is greater than the local value's
+				 * version but multicast anyway if removeFlag is true, only the
+				 * coordinator can receive the packet with removeFlag setted to true */
 				if (msg.removeFlag) {
 					msg.value = new Versioned<byte[]>(
 							msg.value.getValue(), 
 							incrementVectorClock());
 				}
-				Versioned<byte[]> v1= msg.value;
-				Versioned<byte[]> v2 = localStore.get(msg.key);
+				
+				List<Versioned<byte[]>> l2 = localStore.get(msg.key);
+				Versioned<byte[]> v1 = msg.value;
+				Versioned<byte[]> v2 = l2 != null ? l2.get(0) : null;
+				
 				if ( Utils.compare(v1, v2) == 1 ) {
-					localStore.remove(msg.key);
-					concurrentLocalStore.remove(msg.key);
-				} 
+					VectorClock vc = (VectorClock) msg.value.getVersion();
+					localStore.remove(msg.key, vc);
+				}
+				
 				if (msg.removeFlag) {
 					msg.removeFlag = false;
 					DatagramSocket sck = null;
@@ -218,13 +220,17 @@ public class StorageService implements IStorageService {
 					}
 				}
 				break;
+				
 			case Message.LIST:
 				for (Serializable key : localStore.list())
 					msg.addKey(key);
 				break;
+				
 			default:
 				msg.status = Message.ERROR;
+				
 			}
+		
 		if (msg.status == Message.UNKNOWN)
 			msg.status = Message.SUCCESS;
 	}

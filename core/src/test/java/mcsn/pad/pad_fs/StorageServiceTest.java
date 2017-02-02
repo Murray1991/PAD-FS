@@ -21,7 +21,6 @@ import org.junit.Test;
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
 import mcsn.pad.pad_fs.common.IService;
-import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.membership.MembershipService;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
@@ -29,8 +28,7 @@ import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.utils.TestUtils;
-import voldemort.versioning.Occurred;
-import voldemort.versioning.VectorClock;
+import voldemort.versioning.Versioned;
 
 public class StorageServiceTest {
 	
@@ -56,177 +54,161 @@ public class StorageServiceTest {
 			lStores.add( localStore );
 			sServices.add( new StorageService(membershipService, localStore));
 		}
-		
 		TestUtils.startServices(mServices);
 		TestUtils.startServices(sServices);
-		
-		map = createMessages(Message.PUT, createKeys(num));
-		Thread.sleep(5000);
+		System.out.println("-- wait for startup");
+		Thread.sleep(6000);
 	}
 	
 	@After
 	public void teardown() {
 		TestUtils.shutdownServices(mServices);
 		TestUtils.shutdownServices(sServices);
-		checkValues(map, lStores);
+		TestUtils.checkValues(map, lStores);
 	}
 	
 	@Test
 	public void testWithoutUpdates() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		System.out.println("====== testWithoutUpdates ======");
+		
+		System.out.println("-- deliver messages to the system");
+		map = createMessages(Message.PUT, createKeys(num));
 		deliverMessages(map, sServices);
 		System.out.println("-- wait...");
 		Thread.sleep(20000);
+		
 	}
 
 	@Test
 	public void testWithUpdates() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		System.out.println("====== testWithUpdates ======");
-		deliverMessages(map, sServices);
-		System.out.println("-- wait...");
-		Thread.sleep(10000);
-		System.out.println("-- update some values...");
+		
+		testWithoutUpdates();
+		System.out.println("-- update some values");
 		updateAndDeliverMessages(map, sServices);
-		System.out.println("-- wait...");
+		System.out.println("-- wait");
 		Thread.sleep(20000);
 		
 	}
 	
 	@Test
 	public void testWithFailuresAndUpdates() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		System.out.println("====== testWithFailuresAndUpdates ======");
-		deliverMessages(map, sServices);
-		System.out.println("-- wait...");
-		Thread.sleep(10000);
-		System.out.println("-- disable gossipService of " + sServices.get(0)); 
+		
+		testWithoutUpdates();
+		System.out.println("-- shutdown member service of " + sServices.get(0)); 
 		mServices.get(0).shutdown();
-		System.out.println("-- wait...");
+		IService removed = mServices.remove(0);
+		System.out.println("-- wait");
 		Thread.sleep(10000);
-		System.out.println("-- update some values...");
+		
+		/* each service here should know dim-2 members */
+		checkIfCorrect(mServices, dim-2);
+		System.out.println("-- update some values");
 		updateAndDeliverMessages(map, sServices);
-		System.out.println("-- wait...");
+		System.out.println("-- wait");
 		Thread.sleep(5000);
-		System.out.println("-- restart the interrupted service"); 
-		mServices.get(0).start();
-		System.out.println("-- wait...");
+		
+		System.out.println("-- restart " + sServices.get(0));
+		removed.start();
+		mServices.add(removed);
+		System.out.println("-- wait");
 		Thread.sleep(20000);
+		checkIfCorrect(mServices, dim-1);
 	}
 	
 	@Test
-	public void concurrencyAndRemoveTest() throws InterruptedException {
-		System.out.println("====== concurrencyAndRemoveTest ======");
-		deliverMessages(map, sServices);
-		System.out.println("-- wait...");
-		Thread.sleep(6000);
+	public void concurrencyAndRemoveTest() throws InterruptedException, FileNotFoundException, JSONException, IOException {
 		
-		checkIfCorrect(mServices, dim-1);
+		testWithoutUpdates();
 		
-		System.out.println("-- shutdown all the gossip services...");
+		System.out.println("-- shutdown all member services");
 		TestUtils.shutdownServices(mServices);
-		Thread.sleep(6000);
+		Thread.sleep(10000);
 		
+		/* each service should know nobody */
 		checkIfCorrect(mServices, 0);
 		
-		System.out.println("-- put different values with same key in two different nodes...");
+		System.out.println("-- put different values with same key in two different nodes");
 		List<Serializable> keys = createKeys(30);
 		List<Map<Serializable, ClientMessage>> list = new ArrayList<>();
-		Random rand = new Random();
-		final int index = rand.nextInt(dim);
-		
-		for (int i=0; i<2; i++) {
-				
-			Map<Serializable, ClientMessage> msgs = 
-					createMessages(Message.PUT, keys);
-			
-			int idx = (index+i)%dim;
-			System.out.println("-- send put messages to " + sServices.get(idx));
+		for (int idx = 0; idx < 2; idx++) {				
+			Map<Serializable, ClientMessage> msgs = createMessages(Message.PUT, keys);
 			for (Serializable key : msgs.keySet()) {
 				StorageService ss = (StorageService) sServices.get(idx);
 				ClientMessage res = ss.deliverMessage(msgs.get(key));
 				Assert.assertTrue(res.status == Message.SUCCESS);
 			}
-			
 			list.add(msgs);
 		}
 		
-		Thread.sleep(2000);
-		
-		System.out.println("-- restart all the gossip services...");
+		System.out.println("-- restart all the member services");
 		TestUtils.startServices(mServices);
-		
-		System.out.println("-- wait...");
+		System.out.println("-- wait");
 		Thread.sleep(20000);
 		
+		/* each service should know dim-1 members */
 		checkIfCorrect(mServices, dim-1);
 		
-		Map<Serializable, ClientMessage> getMessages =
-				createMessages(Message.GET, keys);
-		
-		System.out.println("-- concurrency test...");
+		System.out.println("-- get \"concurrent\" messages");
+		Map<Serializable, ClientMessage> getMessages = createMessages(Message.GET, keys);
 		for (int i=0; i<2; i++) {
-			
 			for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
-				int idx = rand.nextInt(dim);
+				int idx = Math.abs(e.hashCode()) % dim;
 				StorageService ss = (StorageService) sServices.get(idx);
 				ClientMessage res = ss.deliverMessage(e.getValue());
-				
-				Assert.assertTrue("type: " + res.status, res.status == Message.SUCCESS);
+				Assert.assertTrue(res.status == Message.SUCCESS);
+				Assert.assertNotNull(res.values);
 				
 				byte[] exp = list.get(i).get(e.getKey()).value.getValue();
-				byte[] res1 = res.value.getValue();
-				
-				Assert.assertNotNull(res.values);
-				byte[] res2 = res.values.get(0).getValue();
-				Assert.assertTrue( "something is wrong... ",
+				byte[] res1 = res.values.get(0).getValue();
+				byte[] res2 = res.values.get(1).getValue();
+				Assert.assertTrue( 
+						new String(exp).substring(0,5) + " -- " 
+						+ new String(res1).substring(0, 5) + " -- "
+						+ new String(res2).substring(0, 5),
 						Arrays.equals(exp, res1) || Arrays.equals(exp, res2));
 			}
 		}
 		
-		for (int i = 0; i < keys.size()/2 ; i++) {
-			int idx = rand.nextInt(keys.size());
-			keys.remove(idx);
-		}
-		
-		/* keys to remove */
-		Map<Serializable, ClientMessage> removeMessages = 
-				createMessages(Message.REMOVE, keys);
+		Random rand = new Random();
+		keys.removeIf( k -> rand.nextInt(10) < 5);
 		
 		System.out.println("-- remove some keys...");
-		for (Entry<Serializable, ClientMessage> e : removeMessages.entrySet()) {
-			int idx = rand.nextInt(dim);
+		Map<Serializable, ClientMessage> rmMessages = createMessages(Message.REMOVE, keys);
+		for (Entry<Serializable, ClientMessage> e : rmMessages.entrySet()) {
+			int idx = Math.abs(e.hashCode()) % dim;
 			StorageService ss = (StorageService) sServices.get(idx);
 			ClientMessage res = ss.deliverMessage(e.getValue());
 			Assert.assertTrue(res.status == Message.SUCCESS);
-			for (int i=0; i<dim; i++)
-				Assert.assertNull("index i="+i, lStores.get(i).get(e.getKey()));
+			
+			/* check values for that key in the stores */
+			for (int i=0; i<dim; i++) {
+				LocalStore ls = lStores.get(i);
+				List<Versioned<byte[]>> values = ls.get(e.getKey());
+				Assert.assertTrue(values == null || values.get(0).getValue() == null);
+			}
 		}
 		
-		System.out.println("-- try to get the removed keys...");
+		System.out.println("-- try to get the removed keys");
 		getMessages = createMessages(Message.GET, keys);
 		for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
 			int idx = rand.nextInt(dim);
 			StorageService ss = (StorageService) sServices.get(idx);
 			ClientMessage res = ss.deliverMessage(e.getValue());
-			Assert.assertTrue("status: "+res.status, res.status == Message.NOT_FOUND);
+			Assert.assertTrue(res.status == Message.NOT_FOUND);
 		}
 	}
 	
 	@Test
-	public void testList() throws InterruptedException {
-		System.out.println("====== testList ======");
-		deliverMessages(map, sServices);
-		System.out.println("-- wait...");
-		Thread.sleep(8000);
+	public void testList() throws InterruptedException, FileNotFoundException, JSONException, IOException {
+		
+		testWithoutUpdates();
 		
 		System.out.println("-- send list message");
 		ClientMessage msg = new ClientMessage(Message.LIST);
+		int idx = Math.abs(msg.hashCode()) % dim;
 		
-		int idx = (Math.abs(msg.hashCode()) % sServices.size()) + 1;
-		ClientMessage rcvMsg = ((StorageService) 
-				sServices.get(idx-1))
-				.deliverMessage(msg);
-		
-		Assert.assertTrue("number of keys: " + rcvMsg.keys.size(), rcvMsg.keys.size() == num);
+		StorageService ss = (StorageService) sServices.get(idx);
+		ClientMessage rcvMsg = ss.deliverMessage(msg);
+		Assert.assertTrue(rcvMsg.keys.size() == num);
 	}
 	
 	private Map<Serializable, ClientMessage> createMessages(int type, List<Serializable> keys) {
@@ -284,61 +266,11 @@ public class StorageServiceTest {
 		}
 	}
 	
-	private void checkValues(Map<Serializable, ClientMessage> map, List<LocalStore> lStores){
-		for (Serializable key : map.keySet() ) {
-			
-			int stores = TestUtils.countKey(key, lStores);
-			Assert.assertTrue( stores + " != " + lStores.size(), stores == lStores.size() );
-			
-			Assert.assertTrue( 
-					"[" + new String(lStores.get(0).get(key).getValue()).substring(0, 5) + " -- " + lStores.get(0).get(key).getVersion() + "] ;; " + 
-							"[" + new String(lStores.get(1).get(key).getValue()).substring(0, 5) + lStores.get(1).get(key).getVersion()  + "] ;;"  +
-							"[" + new String(lStores.get(2).get(key).getValue()).substring(0, 5) + lStores.get(2).get(key).getVersion()  + "] ;; " +
-							"[" + new String(lStores.get(3).get(key).getValue()).substring(0, 5) + lStores.get(3).get(key).getVersion()  + "] ;;" +
-							"[" + new String(map.get(key).value.getValue()).substring(0, 5) + map.get(key).value.getVersion() + "] ;;" +
-							Utils.compare(map.get(key).value, lStores.get(3).get(key)) ,
-					TestUtils.checkValues( 
-							TestUtils.getValues(key, lStores), 
-							lStores.get(0).get(key)
-							) 
-					);
-			
-			Assert.assertTrue( 
-					TestUtils.checkValues( 
-							TestUtils.getValues(key, lStores), 
-							map.get(key).value
-							) 
-					); 
-		}
-	}
-	
 	private void checkIfCorrect(List<IService> services, int expected) {
 		for (IService service : services) {
 			MembershipService ms = (MembershipService) service;
-			Assert.assertTrue(ms.getMembers().size() == expected);
+			int size = ms.getMembers().size();
+			Assert.assertTrue("size: " + size , size == expected);
 		}
-	}
-	
-    public void testComparisons() throws InterruptedException {
-        Assert.assertTrue("The empty clock should not happen before itself.",
-                   TestUtils.getClock().compare(TestUtils.getClock()) != Occurred.CONCURRENTLY);
-        Assert.assertTrue("A clock should not happen before an identical clock.",
-                   TestUtils.getClock(1, 1, 2).compare(TestUtils.getClock(1, 1, 2)) != Occurred.CONCURRENTLY);
-        Assert.assertTrue(" A clock should happen before an identical clock with a single additional event.",
-                   TestUtils.getClock(1, 1, 2).compare(TestUtils.getClock(1, 1, 2, 3)) == Occurred.BEFORE);
-        Assert.assertTrue("Clocks with different events should be concurrent.",
-                   TestUtils.getClock(1).compare(TestUtils.getClock(2)) == Occurred.CONCURRENTLY);
-        Assert.assertTrue("Clocks with different events should be concurrent.",
-                   TestUtils.getClock(1, 1, 2).compare(TestUtils.getClock(1, 1, 3)) == Occurred.CONCURRENTLY);
-        Assert.assertTrue("Clocks with different events should be concurrent.",
-                   TestUtils.getClock(1, 2, 3, 3).compare(TestUtils.getClock(1, 1, 2, 3)) == Occurred.CONCURRENTLY);
-        Assert.assertTrue(TestUtils.getClock(2, 2).compare(TestUtils.getClock(1, 2, 2, 3)) == Occurred.BEFORE
-                   && TestUtils.getClock(1, 2, 2, 3).compare(TestUtils.getClock(2, 2)) == Occurred.AFTER);
-        VectorClock vc1 = TestUtils.getClock(1);
-        System.out.println(vc1);
-        VectorClock vc2 = TestUtils.getClock(2);
-        System.out.println(vc2);
-        vc1.merge(vc2);
-        System.out.println(vc1);
 	}
 }

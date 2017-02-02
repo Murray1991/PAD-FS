@@ -46,8 +46,8 @@ public class UpdateHandler implements Runnable {
 			Iterator<Serializable> itKey = keys.iterator();
 			while (itKey.hasNext()) {
 				//TODO add keys to pieces list until max possible packet size has been reached
-				final List<Serializable> pieces = new ArrayList<Serializable>(100);
-				while (itKey.hasNext() && pieces.size() < 100)
+				final List<Serializable> pieces = new ArrayList<Serializable>(10);
+				while (itKey.hasNext() && pieces.size() < 10)
 					pieces.add(itKey.next());
 				try {
 					Transport transport = new Transport(storageService);
