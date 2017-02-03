@@ -5,10 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 
 import org.json.JSONException;
@@ -25,6 +23,7 @@ import mcsn.pad.pad_fs.message.Message;
 import mcsn.pad.pad_fs.message.client.GetMessage;
 import mcsn.pad.pad_fs.message.client.ListMessage;
 import mcsn.pad.pad_fs.message.client.PutMessage;
+import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.storage.StorageService;
 import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
@@ -65,29 +64,26 @@ public class StorageServiceTest {
 	public void teardown() {
 		TestUtils.shutdownServices(mServices);
 		TestUtils.shutdownServices(sServices);
+		/* keys in map don't have multiple values in the system */
 		TestUtils.checkValues(map, lStores);
 	}
 	
 	@Test
 	public void testWithoutUpdates() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		
 		System.out.println("-- deliver messages to the system");
 		map = TestUtils.createMessages(Message.PUT, TestUtils.createKeys(num));
 		TestUtils.deliverMessages(map, sServices);
-		System.out.println("-- wait...");
+		System.out.println("-- wait");
 		Thread.sleep(20000);
-		
 	}
 
 	@Test
 	public void testWithUpdates() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		
 		testWithoutUpdates();
 		System.out.println("-- update some values");
 		updateAndDeliverMessages(map, sServices);
 		System.out.println("-- wait");
 		Thread.sleep(20000);
-		
 	}
 	
 	@Test
@@ -101,7 +97,7 @@ public class StorageServiceTest {
 		Thread.sleep(10000);
 		
 		/* each service here should know dim-2 members */
-		checkIfCorrect(mServices, dim-2);
+		TestUtils.checkIfCorrect(mServices, dim-2);
 		System.out.println("-- update some values");
 		updateAndDeliverMessages(map, sServices);
 		System.out.println("-- wait");
@@ -112,7 +108,7 @@ public class StorageServiceTest {
 		mServices.add(removed);
 		System.out.println("-- wait");
 		Thread.sleep(20000);
-		checkIfCorrect(mServices, dim-1);
+		TestUtils.checkIfCorrect(mServices, dim-1);
 	}
 	
 	@Test
@@ -125,84 +121,85 @@ public class StorageServiceTest {
 		Thread.sleep(10000);
 		
 		/* each service should know nobody */
-		checkIfCorrect(mServices, 0);
+		TestUtils.checkIfCorrect(mServices, 0);
+		
+		/* different messages for same keys */
+		List<Serializable> keys = TestUtils.createKeys(30);
+		Map<Serializable, ClientMessage> map1 = TestUtils
+				.createMessages(Message.PUT, keys);
+		Map<Serializable, ClientMessage> map2 = TestUtils
+				.createMessages(Message.PUT, keys);
+		
+		List<Map<Serializable, ClientMessage>> listMap = new ArrayList<>();
+		listMap.add(map1);
+		listMap.add(map2);
 		
 		System.out.println("-- put different values with same key in two different nodes");
-		List<Serializable> keys = TestUtils.createKeys(30);
-		List<Map<Serializable, ClientMessage>> list = new ArrayList<>();
-		for (int idx = 0; idx < 2; idx++) {				
-			Map<Serializable, ClientMessage> msgs = TestUtils.createMessages(Message.PUT, keys);
-			for (Serializable key : msgs.keySet()) {
-				StorageService ss = (StorageService) sServices.get(idx);
-				ClientMessage res = ss.deliverMessage(msgs.get(key));
-				Assert.assertTrue(res.status == Message.SUCCESS);
-			}
-			list.add(msgs);
+		for (int i = 0; i < listMap.size(); i++) {
+			StorageService ss = (StorageService) sServices.get(i);
+			Map<Serializable, ClientMessage> map = listMap.get(i);
+			deliverMessages(map, ss);
 		}
 		
 		System.out.println("-- restart all the member services");
 		TestUtils.startServices(mServices);
+		
+		/* wait for gossiping startup */
+		System.out.println("-- wait");
+		Thread.sleep(6000);
+		
+		/* each service should know dim-1 members */
+		TestUtils.checkIfCorrect(mServices, dim-1);
+		
+		/* wait for convergence */
 		System.out.println("-- wait");
 		Thread.sleep(20000);
 		
-		/* each service should know dim-1 members */
-		checkIfCorrect(mServices, dim-1);
-		
-		System.out.println("-- get \"concurrent\" messages");
-		Map<Serializable, ClientMessage> getMessages = TestUtils.createMessages(Message.GET, keys);
-		for (int i=0; i<2; i++) {
+		System.out.println("-- get messages with multiple values");
+		TestUtils.createMessages(Message.GET, keys)
+		.forEach( (key, msg) -> {
+			int idx = Math.abs(key.hashCode()) % dim;
+			StorageService ss = (StorageService) sServices.get(idx);
+			GetMessage res = (GetMessage) ss.deliverMessage(msg);
+			Assert.assertTrue(res.status == Message.SUCCESS);
+			Assert.assertNotNull(res.values);
 			
-			for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
-				
-				int idx = Math.abs(e.hashCode()) % dim;
-				StorageService ss = (StorageService) sServices.get(idx);
-				GetMessage res = (GetMessage) ss.deliverMessage(e.getValue());
-				
-				Assert.assertTrue(res.status == Message.SUCCESS);
-				Assert.assertNotNull(res.values);
-				
-				PutMessage sentMsg = (PutMessage) list.get(i).get(e.getKey());
-				byte[] exp = sentMsg.value.getValue();
-				byte[] res1 = res.values.get(0).getValue();
-				byte[] res2 = res.values.get(1).getValue();
-				Assert.assertTrue( 
-						new String(exp).substring(0,5) + " -- " 
-						+ new String(res1).substring(0, 5) + " -- "
-						+ new String(res2).substring(0, 5),
-						Arrays.equals(exp, res1) || Arrays.equals(exp, res2));
-				
-			}
-		}
+			Assert.assertTrue("size: " + res.values.size(), res.values.size() == 2);
+			
+			listMap.forEach( map -> {
+				PutMessage pmsg = (PutMessage) map.get(key);
+				boolean match = res.values.stream()
+						.anyMatch( vv -> vv.equals( pmsg.value ));
+				Assert.assertTrue(match);
+			});
+		});
 		
+		/* select keys to remove */
 		Random rand = new Random();
 		keys.removeIf( k -> rand.nextInt(10) < 5);
-		
-		System.out.println("-- remove some keys...");
-		Map<Serializable, ClientMessage> rmMessages = TestUtils.createMessages(Message.REMOVE, keys);
-		for (Entry<Serializable, ClientMessage> e : rmMessages.entrySet()) {
-			int idx = Math.abs(e.hashCode()) % dim;
-			StorageService ss = (StorageService) sServices.get(idx);
-			ClientMessage res = ss.deliverMessage(e.getValue());
-			Assert.assertTrue(res.status == Message.SUCCESS);
-			
-			/* check values for that key in the stores */
-			for (int i=0; i<dim; i++) {
-				LocalStore ls = lStores.get(i);
-				List<Versioned<byte[]>> values = ls.get(e.getKey());
-				Assert.assertTrue(values == null || values.get(0).getValue() == null);
-			}
-		}
-		
-		System.out.println("-- try to get the removed keys");
-		getMessages = TestUtils.createMessages(Message.GET, keys);
-		for (Entry<Serializable, ClientMessage> e : getMessages.entrySet()) {
+	
+		System.out.println("-- remove some keys");
+		TestUtils.createMessages(Message.REMOVE, keys)
+		.forEach( (key, msg) -> {	
 			int idx = rand.nextInt(dim);
 			StorageService ss = (StorageService) sServices.get(idx);
-			ClientMessage res = ss.deliverMessage(e.getValue());
+			ClientMessage res = ss.deliverMessage(msg);
+			Assert.assertTrue(res.status == Message.SUCCESS);
+			boolean match = lStores.stream().allMatch( ls -> isEmpty( ls.get(key) ) );
+			Assert.assertTrue(match);
+		});
+		
+		System.out.println("-- try to get the removed keys");
+		TestUtils.createMessages(Message.GET, keys)
+		.forEach( (key, msg) -> {
+			int idx = rand.nextInt(dim);
+			StorageService ss = (StorageService) sServices.get(idx);
+			ClientMessage res = ss.deliverMessage(msg);
 			Assert.assertTrue(res.status == Message.NOT_FOUND);
-		}
+		});
+
 	}
-	
+
 	@Test
 	public void testList() throws InterruptedException, FileNotFoundException, JSONException, IOException {
 		
@@ -217,27 +214,28 @@ public class StorageServiceTest {
 		Assert.assertTrue(res.keys.size() == num);
 	}
 	
+	private void deliverMessages(Map<Serializable, ClientMessage> map, IStorageService service) {
+		for (Serializable key : map.keySet()) {
+			ClientMessage res = service.deliverMessage(map.get(key));
+			Assert.assertTrue(res.status == Message.SUCCESS);
+		}
+	}
+	
 	private void updateAndDeliverMessages(Map<Serializable, ClientMessage> map, List<IService> sServices) {
 		Random rand = new Random();
 		int bound = sServices.size();
 		for (Serializable key : map.keySet()) {
 			if (rand.nextInt(10) <= 3) {
 				int idx = rand.nextInt(bound);
-				
 				ClientMessage msg = new PutMessage(key, TestUtils.getRandomString().getBytes());
 				map.put(key, msg);
-				
 				StorageService ss = (StorageService) sServices.get(idx);
 				ss.deliverMessage(msg);
 			}
 		}
 	}
 	
-	private void checkIfCorrect(List<IService> services, int expected) {
-		for (IService service : services) {
-			MembershipService ms = (MembershipService) service;
-			int size = ms.getMembers().size();
-			Assert.assertTrue("size: " + size , size == expected);
-		}
+	private boolean isEmpty(List<Versioned<byte[]>> list) {
+		return list == null || list.get(0).getValue() == null ;
 	}
 }

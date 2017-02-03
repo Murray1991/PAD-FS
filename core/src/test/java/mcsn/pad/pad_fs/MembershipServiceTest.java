@@ -26,7 +26,6 @@ public class MembershipServiceTest {
 	
 	@Before
 	public void setup() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		System.out.println("-- setup MembershipServiceTest");
 		this.services = new ArrayList<>(dim);
 		String filename = this.getClass().getResource("/gossip.conf").getFile();
 		File configFile = new File(filename);
@@ -34,60 +33,53 @@ public class MembershipServiceTest {
 			Configuration config = new Configuration("127.0.0."+i, configFile);
 			services.add(new MembershipService(config));
 		}
-		
 		TestUtils.startServices(services);
 		Thread.sleep(10000);
 	}
 	
 	@After
 	public void teardown() {
-		System.out.println("-- teardown MembershipServiceTest");
 		TestUtils.shutdownServices(services);
-		services = null;
 	}
 
 	@Test
 	public void gossipTest() throws FileNotFoundException, JSONException, IOException, InterruptedException {
-		// Each member should know dim-1 friends
-		checkIfCorrect(services, dim-1);
+		/* each member should know dim-1 friends */
+		TestUtils.checkIfCorrect(services, dim-1);
 	}
 	
 	@Test
 	public void gossipTestWithFailures() throws InterruptedException, FileNotFoundException, JSONException, IOException {
-		// Each member should know dim-1 friends
-		checkIfCorrect(services, dim-1);
+		/* each member should know dim-1 friends */
+		TestUtils.checkIfCorrect(services, dim-1);
 		
-		//Shutdown a given service
+		/* shutdown the first service */
 		IService removed0 = services.remove(0);
-		System.out.println("-- shutdown " + ((MembershipService) removed0).getMyself());
 		removed0.shutdown();
 
-		//Shutdown another service
+		/* shutdown the second service */
 		IService removed1 = services.remove(0);
-		System.out.println("-- shutdown " + ((MembershipService) removed1).getMyself());
 		removed1.shutdown();
 		
-		Assert.assertTrue(! removed0.isRunning() );
-		Assert.assertTrue(! removed1.isRunning() );
-		Thread.sleep(20000);
+		Assert.assertFalse( removed0.isRunning() );
+		Assert.assertFalse( removed1.isRunning() );
+		System.out.println("-- wait");
+		Thread.sleep(10000);
 		
-		//Each member should know dim-3 friends
-		System.out.println("-- check failure detection");
-		//TODO sometimes, problem here with two failures...
-		checkIfCorrect(services, dim-3);
+		/* each left member should know dim-3 friends */
+		TestUtils.checkIfCorrect(services, dim-3);
 		
-		//Reinsert the services in the list and restart
-		System.out.println("-- restart " + ((MembershipService) removed0).getMyself());
+		/* reinsert the services in the list and restart */
 		removed0.start();
-		services.add(removed0);
-		System.out.println("-- restart " + ((MembershipService) removed1).getMyself());
 		removed1.start();
+		services.add(removed0);
 		services.add(removed1);
 		
+		System.out.println("-- wait");
 		Thread.sleep(8000);
 		
-		//Check if members are restored
-		checkIfCorrect(services, dim-1);
+		/* check if members are restored */
+		TestUtils.checkIfCorrect(services, dim-1);
 	}
 	
 	@Test
@@ -95,49 +87,65 @@ public class MembershipServiceTest {
 	
 		String key = TestUtils.getRandomString();
 		
-		//Each member should know dim-1 friends
-		checkIfCorrect(services, dim-1);
+		TestUtils.checkIfCorrect(services, dim-1);
 		
-		//Get the coordinator for the key and shutdown it
+		/* get the coordinator for the key and shutdown it */
 		Member m1 = getCoordinator(services, key);
-		IService removed = findServiceForMember(services, m1);
+		IService removed = (IService) services
+				.stream()
+				.filter( m -> ((IMembershipService) m).getMyself().equals(m1) )
+				.toArray()[0];
 		services.remove(removed);
 		removed.shutdown();
 		
-		//An immediate getCoordinator call should give the same coordinator
+		/* an immediate getCoordinator call should give the same coordinator */
 		Assert.assertTrue( m1.equals( getCoordinator(services, key) ) );
 		
 		Thread.sleep(10000);
 	
-		//After the cleanup_interval each "alive" member should know dim-2 firends
-		checkIfCorrect(services, dim-2);
+		/* after the cleanup_interval each "alive" member should know dim-2 firends */
+		TestUtils.checkIfCorrect(services, dim-2);
 		
-		//Here getCoordinator should give a different coordinator
+		/* here getCoordinator should give a different coordinator */
 		Assert.assertTrue( ! m1.equals( getCoordinator(services, key) ) );
 		
-		//The coordinator of any key for the removed member should be the member itself
-		Assert.assertTrue( m1.equals( ((MembershipService) removed).getCoordinator(key) ));
+		/* the coordinator of any key for the removed member should be the member itself */
+		Member expected = ((MembershipService) removed).getCoordinator(key);
+		Assert.assertTrue( m1.equals(expected) );
 		for (int i = 0; i < 10; i++ ) {
 			String anotherKey = TestUtils.getRandomString();
-			Assert.assertTrue( m1.equals( ((MembershipService) removed).getCoordinator(anotherKey) ));
+			expected = ((MembershipService) removed)
+					.getCoordinator(anotherKey);
+			Assert.assertTrue( m1.equals(expected) );
 		}
 		
-		//Reinsert the service in the list and restart
+		/* reinsert the service in the list and restart */
 		services.add(removed);
 		removed.start();
 		
+		System.out.println("-- wait");
 		Thread.sleep(8000);
 		
-		//Check the same conditions at the beginning after some time
-		checkIfCorrect(services, dim-1);
+		/* check the same conditions at the beginning after some time */
+		TestUtils.checkIfCorrect(services, dim-1);
 		Assert.assertTrue(m1.equals( getCoordinator(services, key) ));
 	}
 	
-	private void checkIfCorrect(List<IService> services, int expected) {
+	private Member getCoordinator(List<IService> services, String key) {
+		MembershipService msp = (MembershipService) services.get(0);
+		Member p = msp.getCoordinator(key);
+		Assert.assertNotNull(p);
+		List<Member> mspMembers = msp.getMembers();
 		for (IService service : services) {
-			MembershipService ms = (MembershipService) service;
-			Assert.assertTrue(printInfo(ms.getMyself(), ms.getMembers()), ms.getMembers().size() == expected);
+			MembershipService msm = (MembershipService) service;
+			Member m = msm.getCoordinator(key);
+			Assert.assertNotNull(m);
+			List<Member> msmMembers = msm.getMembers();
+			Assert.assertTrue(
+					printInfo(p, mspMembers) + printInfo(m, msmMembers), 
+					p.equals(m));
 		}
+		return p;
 	}
 	
 	private String printInfo(Member me , List<Member> members) {
@@ -146,29 +154,5 @@ public class MembershipServiceTest {
 			s += ";; " + m.toString();
 		}
 		return s;
-	}
-	
-	private Member getCoordinator(List<IService> services, String key) {
-		MembershipService msp = (MembershipService) services.get(0);
-		Member p = msp.getCoordinator(key);
-		List<Member> mspMembers = msp.getMembers();
-		for (IService service : services) {
-			MembershipService msm = (MembershipService) service;
-			Member m = msm.getCoordinator(key);
-			Assert.assertNotNull(p);
-			Assert.assertNotNull(m);
-			List<Member> msmMembers = msm.getMembers();
-			Assert.assertTrue(printInfo(p, mspMembers) + printInfo(m, msmMembers), 
-					p.equals(m));
-		}
-		return p;
-	}
-	
-	private IService findServiceForMember(List<IService> services, Member member) {
-		for (IService service : services) {
-			if (((IMembershipService) service).getMyself().equals(member))
-				return service;
-		}
-		return null;
 	}
 }

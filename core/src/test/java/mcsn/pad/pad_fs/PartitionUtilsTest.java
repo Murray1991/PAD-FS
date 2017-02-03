@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-
 import org.json.JSONException;
 import org.junit.Test;
 
@@ -22,10 +20,9 @@ public class PartitionUtilsTest {
 	int numKeys = 1000;
 	
 	List<String> createKeys(int number) {
-		Random random = new Random(System.currentTimeMillis());
 		List<String> keys = new ArrayList<>();
 		for (int i=0; i < number; i++)
-			keys.add(TestUtils.nextSessionId(random));
+			keys.add(TestUtils.getRandomString());
 		return keys;
 	}
 	

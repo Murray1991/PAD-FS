@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -144,19 +143,14 @@ public class TestUtils {
 		}
 		return true;
 	}
-
-	public static String nextSessionId(Random random) {
-	    return new BigInteger(100, random).toString(32);
-	}
 	
 	/**
 	 * get a list of random elements
 	 */
 	public static List<Versioned<byte[]>> getElements(int dim) {
-		Random random = new Random(System.currentTimeMillis());
 		ArrayList<Versioned<byte[]>> elements = new ArrayList<>();
 		for (int i=0; i<dim; i++) {
-			elements.add( new Versioned<byte[]>( nextSessionId(random).getBytes()) );
+			elements.add( new Versioned<byte[]>( getRandomString().getBytes()) );
 		}
 		return elements;
 	}
@@ -174,6 +168,9 @@ public class TestUtils {
 		return members;
 	}
 	
+	/**
+	 * deliver messages in map to the sServices
+	 */
 	public static void deliverMessages(Map<Serializable, ClientMessage> map, List<IService> sServices) {
 		
 		Iterator<Serializable> it = map.keySet().iterator();
@@ -212,6 +209,13 @@ public class TestUtils {
 		return map;
 	}
 	
+	/**
+	 * Check if each MembershipService in services knows
+	 * exactly expected neighbours
+	 * 
+	 * @param services the membership services
+	 * @param expected the expected number of neighbours
+	 */
 	public static void checkIfCorrect(List<IService> services, int expected) {
 		for (IService service : services) {
 			MembershipService ms = (MembershipService) service;
@@ -275,7 +279,7 @@ public class TestUtils {
 	}
 	
 	public static ClientMessage randomMessage(ClientMessage msg) {
-		Versioned<byte[]> value = new Versioned<byte[]>(nextSessionId(new SecureRandom()).getBytes());
+		Versioned<byte[]> value = new Versioned<byte[]>(getRandomString().getBytes());
 		Serializable key = ((PutMessage) msg).key;
 		return new PutMessage(key, value);
 	}
