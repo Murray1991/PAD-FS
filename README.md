@@ -14,7 +14,7 @@
 * `mvn clean package`
 
 #### How to run
-After the installation phase all the jar executable files will be `target` directory
+After the installation phase all the jar executable files will be in `target` directory
 
 ##### Run a node of the system
 * `java -jar target/pad-fs.jar [-b <binding-addr>] [-c <config-file>] [-p <path for the local DB>]`
