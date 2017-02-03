@@ -7,6 +7,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
@@ -130,11 +131,17 @@ public class StorageService implements IStorageService {
 			 * is not the coordinator for this key */
 			DatagramSocket socket = null;
 			try {
+				
 				socket = new DatagramSocket();
 				Transport transport = new Transport(socket, this);
-				transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort)); 
-				rcvMsg = (ClientMessage) transport.receive().msg; 
-				//TODO check if rcvMsg is correct and handle -> timeout if msg is not received
+				transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort));
+				try {
+					/* receive with timeout */
+					rcvMsg = (ClientMessage) transport.receive(1000).msg;
+				} catch (SocketTimeoutException e) {
+					System.out.println("Timeout: request not handled");
+				}
+				
 			} catch (IOException | ClassNotFoundException e) {
 				e.printStackTrace();
 			} finally {

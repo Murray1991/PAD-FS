@@ -3,6 +3,7 @@ package mcsn.pad.pad_fs.transport;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.List;
 
 import junit.framework.Assert;
@@ -34,6 +35,12 @@ public class Transport {
 
 	public SourceMessage receive() throws ClassNotFoundException, IOException {
 		SourceMessage srcMsg = UDP.srcReceive(udpServer);
+		onReceive(srcMsg.msg, srcMsg.msg.type);
+		return srcMsg;
+	}
+	
+	public SourceMessage receive(int timeout) throws ClassNotFoundException, IOException, SocketTimeoutException {
+		SourceMessage srcMsg = UDP.srcReceive(udpServer, timeout);
 		onReceive(srcMsg.msg, srcMsg.msg.type);
 		return srcMsg;
 	}

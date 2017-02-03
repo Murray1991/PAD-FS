@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -74,6 +75,24 @@ public class UDP {
 	public static SourceMessage srcReceive(DatagramSocket socket) throws ClassNotFoundException, IOException {
 		byte[] buf = new byte[socket.getReceiveBufferSize()];
 		DatagramPacket p = new DatagramPacket(buf, buf.length);
+		socket.receive(p);
+		
+		int packet_length = 0;
+		for (int i = 0; i < 4; i++) {
+			int shift = (4 - 1 - i) * 8;
+			packet_length += (buf[i] & 0x000000FF) << shift;
+		}
+		
+		Assert.assertEquals(true, (packet_length == (p.getLength()-4)));
+		byte[] bytes = Arrays.copyOfRange(buf, 4, p.getLength());
+	    Message m = (Message) Utils.convertFromBytes(bytes);
+	    return new SourceMessage(m, p);
+	}
+
+	public static SourceMessage srcReceive(DatagramSocket socket, int timeout) throws IOException, SocketTimeoutException, ClassNotFoundException {
+		byte[] buf = new byte[socket.getReceiveBufferSize()];
+		DatagramPacket p = new DatagramPacket(buf, buf.length);
+		socket.setSoTimeout(timeout);
 		socket.receive(p);
 		
 		int packet_length = 0;
