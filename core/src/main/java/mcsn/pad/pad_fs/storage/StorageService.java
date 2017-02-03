@@ -137,9 +137,11 @@ public class StorageService implements IStorageService {
 				transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort));
 				try {
 					/* receive with timeout */
-					rcvMsg = (ClientMessage) transport.receive(1000).msg;
+					rcvMsg = (ClientMessage) transport.receive(2000).msg;
 				} catch (SocketTimeoutException e) {
 					System.out.println("Timeout: request not handled");
+					rcvMsg = msg;
+					rcvMsg.status = Message.ERROR;
 				}
 				
 			} catch (IOException | ClassNotFoundException e) {
