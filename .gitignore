@@ -11,3 +11,4 @@ cli/.settings/
 core/.settings/
 cli/target/
 bin/
+db/
