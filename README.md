@@ -35,3 +35,6 @@ Passive replication protocol:
 * if the client is not the primary server for that item, the client's request is forwarded to the server
 
 In case of node failures or network partitions, the election of the primary server is based on the partitioning of data through consistency hashing. This guarantees high-availability.
+
+#### TODO list
+* push interval should be configured by the user in pad_fs.conf 
