@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -17,6 +18,7 @@ import org.junit.Test;
 import junit.framework.Assert;
 import mcsn.pad.pad_fs.common.Configuration;
 import mcsn.pad.pad_fs.common.IService;
+import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.membership.MembershipService;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
@@ -198,6 +200,70 @@ public class StorageServiceTest {
 			Assert.assertTrue(res.status == Message.NOT_FOUND);
 		});
 
+	}
+	
+	@Test
+	public void removeTest() throws FileNotFoundException, JSONException, IOException, InterruptedException {
+		
+		testWithoutUpdates();
+		
+		/* create the message to insert and then remove */
+		String key = TestUtils.getRandomString();
+		Map<Serializable, ClientMessage> pmap = TestUtils
+				.createMessages(Message.PUT, Arrays.asList(key));
+		Map<Serializable, ClientMessage> rmap = TestUtils
+				.createMessages(Message.REMOVE, Arrays.asList(key));
+		Map<Serializable, ClientMessage> gmap = TestUtils
+				.createMessages(Message.GET, Arrays.asList(key));
+		
+		/* get coordinator for this key and the index of the service to stop*/
+		Member c = ((MembershipService) mServices.get(0)).getCoordinator(key);
+		System.out.println("Coordinator is " + c);
+		
+		int index;
+		for ( index = 0 ; index < mServices.size(); index++ ) {
+			Member m = ((MembershipService) mServices.get(index)).getMyself();
+			if (m.equals(c)) break;
+		}
+		
+		/* deliver and wait */
+		ClientMessage msg = ((StorageService) sServices.get(0))
+				.deliverMessage(pmap.get(key));
+		Assert.assertTrue(msg.status == Message.SUCCESS);
+		System.out.println("-- wait");
+		Thread.sleep(10000);
+		
+		/* shutdown the membership service of the coordinator and wait*/
+		IService ms = mServices.remove(index);
+		ms.shutdown();
+		
+		System.out.println("-- wait");
+		Thread.sleep(10000);
+		
+		TestUtils.checkIfCorrect(mServices, dim-2);
+		
+		/* remove the key when the coordinator is down*/
+		msg = ((StorageService) sServices.get(0))
+				.deliverMessage(rmap.get(key));
+		Assert.assertTrue(msg.status == Message.SUCCESS);
+		
+		/* check if the key is correctly NOT FOUND in the system */
+		msg = ((StorageService) sServices.get(0))
+				.deliverMessage(gmap.get(key));
+		Assert.assertTrue(msg.status == Message.NOT_FOUND);
+		
+		/* wait a little, restart membership service of coordinator, wait again */
+		Thread.sleep(2000);
+		mServices.add(index, ms);
+		ms.start();
+		Thread.sleep(10000);
+		
+		TestUtils.checkIfCorrect(mServices, dim-1);
+		
+		/* check if the key is correctly NOT FOUND in the system */
+		msg = ((StorageService) sServices.get(0))
+				.deliverMessage(gmap.get(key));
+		Assert.assertTrue(msg.status == Message.NOT_FOUND);
 	}
 
 	@Test
