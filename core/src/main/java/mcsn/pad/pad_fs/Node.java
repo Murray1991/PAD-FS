@@ -51,20 +51,12 @@ public class Node
     	this( new Configuration(configFile) , Paths.get(""), storeClass );
 	}
     
-	public Node(final int port, String seed, Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
-		this( new Configuration(seed, port) , Paths.get(""), storeClass  );
-	}
-
 	public Node(String ipAddress, File configFile, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
 		this( new Configuration (ipAddress, configFile) , Paths.get("") , storeClass  );
 	}
 	
 	public Node(File configFile, Path dirPath, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
     	this( new Configuration(configFile) , dirPath, storeClass );
-	}
-    
-	public Node(final int port, String seed, Path dirPath, Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
-		this( new Configuration(seed, port) , dirPath, storeClass  );
 	}
 
 	public Node(String ipAddress, File configFile, Path dirPath, Class<? extends LocalStore> storeClass) throws FileNotFoundException, JSONException, IOException, InterruptedException {
@@ -99,13 +91,13 @@ public class Node
 		}
 		
 		StorageService storageService = 
-				new StorageService(membershipService, dbStore);
+				new StorageService(membershipService, config.getStoragePort(), config.getUpdateInterval(), dbStore);
 		
 		services.add(storageService);
 		
 		InetAddress bindAddr = InetAddress.getByName(config.getHost());
 		ServerService serverService =
-				new ServerService(storageService, 8080, 0, bindAddr);
+				new ServerService(storageService, config.getServerPort(), 0, bindAddr);
 		
 		services.add(serverService);
 		

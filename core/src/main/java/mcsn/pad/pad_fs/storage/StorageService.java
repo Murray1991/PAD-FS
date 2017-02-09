@@ -38,8 +38,8 @@ public class StorageService implements IStorageService {
 	private ReplicaManager replicaManager;
 	private IMembershipService membershipService;
 	private LocalStore localStore;
-	//TODO See if I can set the storageManagerPort in the config file
-	private final int storageManagerPort = 3000; 
+	
+	private int storageManagerPort; 
 
 	private VectorClock vectorClock;
 
@@ -47,8 +47,11 @@ public class StorageService implements IStorageService {
 
 	private String host;
 
+	private int updateInterval;
 
-	public StorageService(IMembershipService membershipService, LocalStore localStore) {
+	public StorageService(IMembershipService membershipService, int port, int interval, LocalStore localStore) {
+		this.storageManagerPort = port;
+		this.updateInterval = interval;
 		this.membershipService = membershipService;
 		this.localStore = localStore;
 		this.host = membershipService.getMyself().host;
@@ -62,6 +65,11 @@ public class StorageService implements IStorageService {
 		this.vectorClock = new VectorClock();
 		this.vectorClock.incrementVersion(this.ID, System.currentTimeMillis());
 	}
+	
+	/** default port = 3000 constructor */
+	public StorageService(IMembershipService membershipService, LocalStore localStore) {
+		this(membershipService, 3000, 1000, localStore);
+	}
 
 	@Override
 	public void start() {
@@ -72,7 +80,7 @@ public class StorageService implements IStorageService {
 			storageManager = new StorageManager(this, host, storageManagerPort);
 		}
 		if (! stateR.equals(State.NEW)) {
-			replicaManager = new ReplicaManager(this, membershipService, 1000, host, storageManagerPort);
+			replicaManager = new ReplicaManager(this, membershipService, updateInterval, host, storageManagerPort);
 		}
 		if (!isRunning) {
 			isRunning = true;
@@ -137,7 +145,7 @@ public class StorageService implements IStorageService {
 				transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort));
 				try {
 					/* receive with timeout */
-					rcvMsg = (ClientMessage) transport.receive(2000).msg;
+					rcvMsg = (ClientMessage) transport.receive(5000).msg;
 				} catch (SocketTimeoutException e) {
 					System.out.println("Timeout: request not handled");
 					rcvMsg = msg;
