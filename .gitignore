@@ -12,3 +12,7 @@ core/.settings/
 cli/target/
 bin/
 db/
+resources/pad_fs_nov.conf
+run_novello.sh
+ship_jars.sh
+
