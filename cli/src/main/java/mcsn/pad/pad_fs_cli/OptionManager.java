@@ -87,7 +87,8 @@ public class OptionManager {
     	
     	/* get the pad-fs addresses from the configuration file or the dest option */
     	if (!cmd.hasOption(dest.getOpt())) {
-    		String path = cmd.hasOption( config.getOpt() ) ? config.getValue() : defaultConfigPath;
+    		String path = cmd.hasOption( config.getOpt() ) ? 
+    				cmd.getOptionValue(config.getOpt()) : defaultConfigPath;
     		addresses = getAddressesFromFile(path);
     	} else {
     		String[] addr_port = cmd.getOptionValues(dest.getOpt());

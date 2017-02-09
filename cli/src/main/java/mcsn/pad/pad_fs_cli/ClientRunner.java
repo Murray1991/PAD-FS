@@ -63,13 +63,18 @@ public class ClientRunner {
         	int size = addresses.size();
         	int idx = rand.nextInt(size);
         	
+        	boolean sent = false;
         	for (int i = 0; i < addresses.size() && rcvMsg == null; i++ ) {
         		try {
         			InetSocketAddress raddr = addresses.get( (idx+i) % size );
         			rcvMsg = new Client(raddr).send(type, values);
                 	processMessage(rcvMsg, om.getOutputPathFile());
+                	sent = true;
                 } catch (IOException | ClassNotFoundException e){
     			}
+        	}
+        	if (!sent) {
+        		System.err.println("Failure in sending request");
         	}
     	}
     }
