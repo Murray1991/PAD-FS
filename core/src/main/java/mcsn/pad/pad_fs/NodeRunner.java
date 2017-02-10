@@ -1,10 +1,13 @@
 package mcsn.pad.pad_fs;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -13,6 +16,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONException;
 
 import mcsn.pad.pad_fs.membership.Member;
@@ -22,6 +26,19 @@ public class NodeRunner {
 
 	public static void main(String[] args) throws FileNotFoundException, JSONException, IOException, InterruptedException {
 
+		InputStream is = null;
+		Properties props = new Properties();
+		try {
+			is = new FileInputStream("log4j.properties");
+		    props.load(is);
+		} catch (FileNotFoundException e) {
+			System.out.println("log4j.properties not found");
+		} finally {
+			if (is != null) is.close();
+		}
+		
+		PropertyConfigurator.configure(props);
+		
 		Options options = new Options();
 		Option config = new Option("c", "config", true, "configuration file");
 		Option bindAddr = new Option("b", "bindaddr", true, "binding address");
