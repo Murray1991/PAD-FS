@@ -3,6 +3,7 @@ package mcsn.pad.pad_fs;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
@@ -40,6 +41,8 @@ public class Node
 	private MembershipService membershipService;
 
 	private Path dirPath;
+
+	private LocalStore dbStore;
 	
 	private Node(Configuration config, Path dirPath, Class<? extends LocalStore> storeClass) throws UnknownHostException, InterruptedException {
 		this.config = config;
@@ -74,7 +77,7 @@ public class Node
 		
 		services.add(membershipService);
 		
-		LocalStore dbStore = null;
+		this.dbStore = null;
 		try {
 			
 			Constructor<?> constructor = storeClass.getConstructor(String.class);
@@ -120,5 +123,12 @@ public class Node
 	
 	public Member getMyself() {
 		return membershipService.getMyself();
+	}
+
+	public List<Serializable> getKeys() {
+		List<Serializable> list = new ArrayList<>();
+		Iterable<Serializable> iterator = dbStore.list();
+		iterator.forEach(list::add);
+		return list;
 	}
 }

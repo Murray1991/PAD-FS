@@ -5,8 +5,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
@@ -100,6 +102,13 @@ public class NodeRunner {
 	        	if (input.equals("members") || input.equals("m")) {
 		     		for (Member m : padNode.getMemberList())
 		        			System.out.println(m);
+	        	} else if (input.equals("list") || input.equals("l")) { 
+	        		List<Serializable> keys = padNode.getKeys();
+	        		System.out.println("#keys: " + keys.size() );
+	        		for (Serializable k : keys) {
+	        				System.out.println(k);
+	        		}
+	        		
 	        	} else {
 	        		System.out.println("-- press ^D (EOF) to shutdown");
 	        	}
