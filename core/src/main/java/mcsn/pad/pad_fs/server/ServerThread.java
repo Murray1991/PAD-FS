@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
+import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 
@@ -25,6 +26,7 @@ public class ServerThread extends Thread {
 
 	@Override
 	public void run() {
+		long start = 0, delta = 0;
 		ObjectInputStream ois = null;
 		ObjectOutputStream oos = null;
 		ClientMessage msg = null;
@@ -32,10 +34,9 @@ public class ServerThread extends Thread {
 			ois = new ObjectInputStream(socket.getInputStream()); //TODO use Future and timeout
 			msg = (ClientMessage) ois.readObject();
 			if (msg != null) {
-				long start = System.nanoTime();    
+				start = System.nanoTime();    
 				msg = storageService.deliverMessage(msg);
-				long delta = System.nanoTime() - start;
-				logger.debug("time elapsed to process message: " + TimeUnit.NANOSECONDS.toMillis(delta));
+				delta = System.nanoTime() - start;
 				oos = new ObjectOutputStream(socket.getOutputStream());
 				oos.writeObject(msg);
 				oos.close();
@@ -46,6 +47,11 @@ public class ServerThread extends Thread {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
+		}
+		
+		if (logger.isDebugEnabled()) {
+			logger.debug("time elapsed to process message: " + TimeUnit.NANOSECONDS.toMillis(delta));
+			logger.debug("client response's size: " + Utils.sizeof(msg));
 		}
 	}
 }

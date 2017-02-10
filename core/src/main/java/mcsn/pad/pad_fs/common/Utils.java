@@ -65,6 +65,19 @@ public class Utils {
 		return 0;	//case concurrency or vc1.equals(vc2)
 	}
 	
+	public static int sizeof(Object obj) {
+	    ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
+	    ObjectOutputStream objectOutputStream;
+		try {
+			objectOutputStream = new ObjectOutputStream(byteOutputStream);
+			objectOutputStream.writeObject(obj);
+		    objectOutputStream.flush();
+		    objectOutputStream.close();
+		} catch (IOException e) {
+		}
+	    return byteOutputStream.toByteArray().length;
+	}
+	
 	public static <T> int compareTimestamps(Versioned<T> v1, Versioned<T> v2) {
 		if (v2 == null)
 			return 1;
