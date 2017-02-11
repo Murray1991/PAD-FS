@@ -12,7 +12,6 @@ import voldemort.versioning.Versioned;
 
 public class MapDBStore extends LocalStore {
 	
-	//onMemory
 	private DB db;
 	private BTreeMap<Serializable, List<Versioned<byte[]>>> map;
 	
