@@ -34,6 +34,7 @@ public class ServerThread extends Thread {
 			ois = new ObjectInputStream(socket.getInputStream()); //TODO use Future and timeout
 			msg = (ClientMessage) ois.readObject();
 			if (msg != null) {
+				logger.debug("start serverThread");
 				start = System.nanoTime();    
 				msg = storageService.deliverMessage(msg);
 				delta = System.nanoTime() - start;
