@@ -3,26 +3,35 @@ package mcsn.pad.pad_fs.storage.local;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
+import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-
 import mcsn.pad.pad_fs.common.Utils;
 import voldemort.versioning.VectorClock;
 import voldemort.versioning.Versioned;
 
 public class MapDBStore extends LocalStore {
 	
+	//onMemory
 	private DB db;
-	private HTreeMap<Serializable, List<Versioned<byte[]>>> map;
+	private BTreeMap<Serializable, List<Versioned<byte[]>>> map;
 	
 	@SuppressWarnings("unchecked")
 	public MapDBStore(String name) {
 		super(name);
-		db = DBMaker.fileDB(name).make();
-		map = (HTreeMap<Serializable, List<Versioned<byte[]>>>) 
-				db.hashMap("principal").createOrOpen();
+		
+		db = DBMaker
+				.fileDB(name)
+				.make();
+		
+		map = (BTreeMap<Serializable, List<Versioned<byte[]>>>) db
+				.treeMap("principal")
+				.createOrOpen();
+		
+		/* map = (HTreeMap<Serializable, List<Versioned<byte[]>>>) db
+				.hashMap("principal")
+				.createOrOpen(); */
+		
 	}
 
 	@Override
@@ -32,6 +41,7 @@ public class MapDBStore extends LocalStore {
 
 	@Override
 	public void put(Serializable key, Versioned<byte[]> value) {
+		/* TODO race conditions here? */
 		List<Versioned<byte[]>> list = map.get(key);
 		int occ = list == null ? 1 : Utils.compare(value, list.get(0));
 		if ( occ == 1 )
