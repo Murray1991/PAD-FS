@@ -22,15 +22,13 @@ public class MapDBStore extends LocalStore {
 		
 		db = DBMaker
 				.fileDB(name)
+				.closeOnJvmShutdown()
 				.make();
 		
 		map = (BTreeMap<Serializable, List<Versioned<byte[]>>>) db
 				.treeMap("principal")
+				.counterEnable()
 				.createOrOpen();
-		
-		/* map = (HTreeMap<Serializable, List<Versioned<byte[]>>>) db
-				.hashMap("principal")
-				.createOrOpen(); */
 		
 	}
 
@@ -40,8 +38,7 @@ public class MapDBStore extends LocalStore {
 	}
 
 	@Override
-	public void put(Serializable key, Versioned<byte[]> value) {
-		/* TODO race conditions here? */
+	synchronized public void put(Serializable key, Versioned<byte[]> value) {
 		List<Versioned<byte[]>> list = map.get(key);
 		int occ = list == null ? 1 : Utils.compare(value, list.get(0));
 		if ( occ == 1 )
@@ -56,14 +53,8 @@ public class MapDBStore extends LocalStore {
 	}
 	
 	@Override
-	public void remove(Serializable key, VectorClock vc) {
+	synchronized public void remove(Serializable key, VectorClock vc) {
 		put(key, new Versioned<byte[]>(null, vc));
-	}
-	
-	@Override
-	public void delete(Serializable key) {
-		map.remove(key);
-		db.commit();
 	}
 
 	@SuppressWarnings("unchecked")

@@ -1,6 +1,5 @@
 package mcsn.pad.pad_fs.storage.local;
 
-import java.io.Serializable;
 import java.util.List;
 
 import voldemort.versioning.VectorClock;
@@ -21,8 +20,6 @@ public interface IStore<K,V> {
 	public void put(K key, Versioned<V> value);
 	
 	public void remove(K key, VectorClock vc);
-	
-	public void delete(Serializable key);
 	
 	public Iterable<K> list();
 	

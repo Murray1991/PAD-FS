@@ -31,10 +31,6 @@ public abstract class LocalStore implements IStore<Serializable, byte[]> {
 	@Override
 	public void remove(Serializable key, VectorClock vc) {
 	}
-	
-	@Override
-	public void delete(Serializable key) {
-	}
 
 	@Override
 	public Iterable<Serializable> list() {

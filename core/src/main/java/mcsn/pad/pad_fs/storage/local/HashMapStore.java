@@ -25,7 +25,7 @@ public class HashMapStore extends LocalStore {
 	}
 
 	@Override
-	public void put(Serializable key, Versioned<byte[]> value) {
+	synchronized public void put(Serializable key, Versioned<byte[]> value) {
 		synchronized(this) {
 			List<Versioned<byte[]>> list = hmap.get(key);
 			int occ = list == null ? 1 : Utils.compare(value, list.get(0));
@@ -41,13 +41,8 @@ public class HashMapStore extends LocalStore {
 	}
 	
 	@Override
-	public void remove(Serializable key, VectorClock vc) {
+	synchronized public void remove(Serializable key, VectorClock vc) {
 		put(key, new Versioned<byte[]>(null, vc));
-	}
-	
-	@Override
-	public void delete(Serializable key) {
-		hmap.remove(key);
 	}
 
 	@Override
