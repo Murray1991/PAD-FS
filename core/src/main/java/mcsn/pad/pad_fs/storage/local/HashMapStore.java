@@ -26,18 +26,31 @@ public class HashMapStore extends LocalStore {
 
 	@Override
 	synchronized public void put(Serializable key, Versioned<byte[]> value) {
-		synchronized(this) {
-			List<Versioned<byte[]>> list = hmap.get(key);
-			int occ = list == null ? 1 : Utils.compare(value, list.get(0));
-			if ( occ == 1 ) 
-				list = new ArrayList<>();
-			if ( occ >= 0 ) {
-				/* in order to avoid duplicates, remove first */
-				list.remove(value);
-				list.add(value);
-				hmap.put(key, list);
-			}
+		List<Versioned<byte[]>> list = hmap.get(key);
+		int occ = list == null ? 1 : Utils.compare(value, list.get(0));
+		if ( occ == 1 ) 
+			list = new ArrayList<>();
+		if ( occ >= 0 ) {
+			/* in order to avoid duplicates, remove first */
+			list.remove(value);
+			list.add(value);
+			hmap.put(key, list);
 		}
+	}
+	
+	@Override
+	public void put(List<Serializable> keys, List<Versioned<byte[]>> values) {
+		
+		if (keys.size() != values.size()) {
+			throw new RuntimeException("put error");
+		}
+		
+		for (int i=0; i<keys.size(); i++) {
+			Serializable key = keys.get(i);
+			Versioned<byte[]> value = values.get(i);
+			put(key, value);
+		}
+		
 	}
 	
 	@Override
@@ -57,4 +70,6 @@ public class HashMapStore extends LocalStore {
 	@Override
 	public void close() {
 	}
+
+	
 }
