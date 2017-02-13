@@ -46,8 +46,8 @@ public class ReplyHandler implements Runnable {
 	public void run() {
 		
 		long start = 0;
-		if (logger.isDebugEnabled()) {
-			logger.debug(Thread.currentThread().getId() + ": replyHandler");
+		if (logger.isTraceEnabled()) {
+			logger.trace(Thread.currentThread().getId() + ": replyHandler");
 			start = System.nanoTime(); 
 		}
 		
@@ -73,10 +73,10 @@ public class ReplyHandler implements Runnable {
 		}
 		
 		localStore.put(keys, values);
-		if (logger.isDebugEnabled()) {
+		if (logger.isTraceEnabled()) {
 			long delta = System.nanoTime() - start;
-			logger.debug(Thread.currentThread().getId() + "time elapsed to process reply message: " + TimeUnit.NANOSECONDS.toMillis(delta));
-			logger.debug(Thread.currentThread().getId() + "reply message's size: #bytes = " + Utils.sizeof(msg) + ", #keys = " + msg.keys.size());
+			logger.trace(Thread.currentThread().getId() + "time elapsed to process reply message: " + TimeUnit.NANOSECONDS.toMillis(delta));
+			logger.trace(Thread.currentThread().getId() + "reply message's size: #bytes = " + Utils.sizeof(msg) + ", #keys = " + msg.keys.size());
 		}
 	}
 }
