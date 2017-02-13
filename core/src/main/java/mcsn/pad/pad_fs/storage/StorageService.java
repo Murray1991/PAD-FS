@@ -144,16 +144,24 @@ public class StorageService implements IStorageService {
 				Transport transport = new Transport(socket, this);
 				transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort));
 				try {
+					
 					/* receive with timeout */
 					rcvMsg = (ClientMessage) transport.receive(5000).msg;
+					
 				} catch (SocketTimeoutException e) {
-					System.out.println("Timeout: request not handled");
+					
+					System.err.println("Timeout: request not handled");
 					rcvMsg = msg;
 					rcvMsg.status = Message.ERROR;
+					
 				}
 				
 			} catch (IOException | ClassNotFoundException e) {
-				e.printStackTrace();
+				
+				System.err.println(e.getMessage());
+				rcvMsg = msg;
+				rcvMsg.status = Message.ERROR;
+				
 			} finally {
 				if (socket != null) 
 					socket.close();
