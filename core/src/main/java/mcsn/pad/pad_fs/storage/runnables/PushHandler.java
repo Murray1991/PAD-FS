@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -59,8 +60,9 @@ public class PushHandler implements Runnable {
 		
 		for (int i = 0; i < msg.keys.size(); i++) {
 			Serializable key = msg.keys.get(i);
+			List<Versioned<byte[]>> l1 = msg.values.get(i);
 			List<Versioned<byte[]>> l2 = localStore.get(key);
-			Versioned<byte[]> v1 = msg.values.get(i).get(0);
+			Versioned<byte[]> v1 = l1.get(0);
 			Versioned<byte[]> v2 = l2 != null ? l2.get(0) : null;
 			
 			int occ = Utils.compare(v1, v2);
@@ -68,7 +70,7 @@ public class PushHandler implements Runnable {
 				pullKeys.add(key);
 			} else if (occ == -1) {
 				replyMap.put(key, l2);
-			} else if (occ == 0 && !v1.getVersion().equals(v2.getVersion())) {
+			} else if (occ == 0 && !new HashSet<>(l2).containsAll(l1)) {
 				/* add for the pull messages in order to ask the values 
 				 * and handle the concurrency case later in the ReplyHandler */
 				pullKeys.add(key);

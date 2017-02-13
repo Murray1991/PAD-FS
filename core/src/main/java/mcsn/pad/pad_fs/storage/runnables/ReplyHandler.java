@@ -2,6 +2,7 @@ package mcsn.pad.pad_fs.storage.runnables;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
@@ -61,11 +62,10 @@ public class ReplyHandler implements Runnable {
 		
 		for (int i = 0; i < replyKeys.size(); i++) {
 			Serializable key = replyKeys.get(i);
+			List<Versioned<byte[]>> l1 = replyValues.get(i);
 			List<Versioned<byte[]>> l2 = localStore.get(key);
-			Versioned<byte[]> v1 = replyValues.get(i).get(0);
-			Versioned<byte[]> v2 = l2 != null ? l2.get(0) : null;
-			if (v1 != null && !v1.equals(v2)) {
-				for (Versioned<byte[]> v : replyValues.get(i)) {
+			if ( l2 == null || !new HashSet<>(l2).containsAll(l1) ) {
+				for (Versioned<byte[]> v : l1) {
 					keys.add(key);
 					values.add(v);
 				}
