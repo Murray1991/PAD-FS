@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.PullMessage;
 import mcsn.pad.pad_fs.message.PushMessage;
@@ -31,6 +33,8 @@ import voldemort.versioning.Versioned;
  * one or more Reply messages)
  */
 public class PushHandler implements Runnable {
+
+    static final Logger logger = Logger.getLogger(PushHandler.class);
 
 	final private LocalStore localStore;
 	final private InetSocketAddress raddr;
@@ -64,7 +68,7 @@ public class PushHandler implements Runnable {
 				pullKeys.add(key);
 			} else if (occ == -1) {
 				replyMap.put(key, l2);
-			} else if (occ == 0 && !v1.equals(v2)) {
+			} else if (occ == 0 && !v1.getVersion().equals(v2.getVersion())) {
 				/* add for the pull messages in order to ask the values 
 				 * and handle the concurrency case later in the ReplyHandler */
 				pullKeys.add(key);

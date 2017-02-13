@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.ReplyMessage;
 import mcsn.pad.pad_fs.message.SourceMessage;
-import mcsn.pad.pad_fs.server.ServerThread;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.Versioned;
@@ -48,7 +47,7 @@ public class ReplyHandler implements Runnable {
 		
 		long start = 0;
 		if (logger.isDebugEnabled()) {
-			logger.debug(Thread.currentThread().getId() + ": start serverThread");
+			logger.debug(Thread.currentThread().getId() + ": replyHandler");
 			start = System.nanoTime(); 
 		}
 		
@@ -77,7 +76,7 @@ public class ReplyHandler implements Runnable {
 		if (logger.isDebugEnabled()) {
 			long delta = System.nanoTime() - start;
 			logger.debug(Thread.currentThread().getId() + "time elapsed to process reply message: " + TimeUnit.NANOSECONDS.toMillis(delta));
-			logger.debug(Thread.currentThread().getId() + "reply message's size: " + Utils.sizeof(msg));
+			logger.debug(Thread.currentThread().getId() + "reply message's size: #bytes = " + Utils.sizeof(msg) + ", #keys = " + msg.keys.size());
 		}
 	}
 }
