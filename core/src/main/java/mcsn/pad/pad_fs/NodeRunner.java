@@ -22,6 +22,8 @@ import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONException;
 
 import mcsn.pad.pad_fs.membership.Member;
+import mcsn.pad.pad_fs.storage.local.HashMapStore;
+import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.storage.local.MapDBStore;
 
 public class NodeRunner {
@@ -45,10 +47,14 @@ public class NodeRunner {
 		Option config = new Option("c", "config", true, "configuration file");
 		Option bindAddr = new Option("b", "bindaddr", true, "binding address");
 		Option path = new Option("p", "path", true, "the path in which store/retrieve the DBs");
+		Option hmStore = new Option("h", "hmstore", false, "specifies to use the in-memory HashMap store");
+		Option help = new Option("help", "help", false, "help print");
 		
 		options.addOption(config);
 		options.addOption(bindAddr);
 		options.addOption(path);
+		options.addOption(hmStore);
+		options.addOption(help);
 		
 		CommandLineParser parser = new DefaultParser();
 		HelpFormatter formatter = new HelpFormatter();
@@ -62,6 +68,11 @@ public class NodeRunner {
     		System.out.println(e.getMessage());
     		formatter.printHelp("pad-fs", options);
     		System.exit(1);
+    	}
+    	
+    	if (cmd.hasOption(help.getOpt())) {
+    		formatter.printHelp("pad-fs", options);
+    		System.exit(0);
     	}
     	
 		File configFile = null;
@@ -85,10 +96,14 @@ public class NodeRunner {
 			dirPath = Paths.get("./");
 		}
 		
+		Class<? extends LocalStore> storeClass = MapDBStore.class;
+		if (cmd.hasOption(hmStore.getOpt()))
+			storeClass = HashMapStore.class;
+		
 		if (addr != null) {
-			padNode = new Node(addr, configFile, dirPath, MapDBStore.class);
+			padNode = new Node(addr, configFile, dirPath, storeClass);
 		} else {
-			padNode = new Node(configFile, dirPath, MapDBStore.class);
+			padNode = new Node(configFile, dirPath, storeClass);
 		}
 
 		System.out.println("-- start pad-fs node");
