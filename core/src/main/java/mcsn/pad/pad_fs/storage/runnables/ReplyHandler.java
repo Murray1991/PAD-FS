@@ -4,9 +4,14 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
+
+import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.ReplyMessage;
 import mcsn.pad.pad_fs.message.SourceMessage;
+import mcsn.pad.pad_fs.server.ServerThread;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import voldemort.versioning.Versioned;
@@ -24,6 +29,8 @@ import voldemort.versioning.Versioned;
  */
 public class ReplyHandler implements Runnable {
 
+    static final Logger logger = Logger.getLogger(ReplyHandler.class);
+
 	final private SourceMessage replyMsg;
 	final private LocalStore localStore;
 
@@ -38,6 +45,13 @@ public class ReplyHandler implements Runnable {
 
 	@Override
 	public void run() {
+		
+		long start = 0;
+		if (logger.isDebugEnabled()) {
+			logger.debug(Thread.currentThread().getId() + ": start serverThread");
+			start = System.nanoTime(); 
+		}
+		
 		ReplyMessage msg = (ReplyMessage) replyMsg.msg;
 		
 		Vector<Serializable> replyKeys = msg.keys;
@@ -60,5 +74,10 @@ public class ReplyHandler implements Runnable {
 		}
 		
 		localStore.put(keys, values);
+		if (logger.isDebugEnabled()) {
+			long delta = System.nanoTime() - start;
+			logger.debug(Thread.currentThread().getId() + "time elapsed to process reply message: " + TimeUnit.NANOSECONDS.toMillis(delta));
+			logger.debug(Thread.currentThread().getId() + "reply message's size: " + Utils.sizeof(msg));
+		}
 	}
 }

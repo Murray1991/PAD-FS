@@ -34,7 +34,7 @@ public class ServerThread extends Thread {
 			ois = new ObjectInputStream(socket.getInputStream()); //TODO use Future and timeout
 			msg = (ClientMessage) ois.readObject();
 			if (msg != null) {
-				logger.debug("start serverThread");
+				logger.debug(this.getId() + ": start serverThread");
 				start = System.nanoTime();    
 				msg = storageService.deliverMessage(msg);
 				delta = System.nanoTime() - start;
@@ -51,8 +51,8 @@ public class ServerThread extends Thread {
 		}
 		
 		if (logger.isDebugEnabled()) {
-			logger.debug("time elapsed to process message: " + TimeUnit.NANOSECONDS.toMillis(delta));
-			logger.debug("client response's size: " + Utils.sizeof(msg));
+			logger.debug(this.getId() + "time elapsed to process message: " + TimeUnit.NANOSECONDS.toMillis(delta));
+			logger.debug(this.getId() + "client response's size: " + Utils.sizeof(msg));
 		}
 	}
 }
