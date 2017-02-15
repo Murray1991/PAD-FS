@@ -7,10 +7,10 @@ echo "-- start nodes 1, 2 (they know only 3)"
 PAD_CONF=$PAD_CONF_123
 startFromTo 1 2
 
-# start the nodes 4, 5
-echo "-- start nodes 4, 5 (they know only 3)"
-PAD_CONF=$PAD_CONF_345
-startFromTo 4 5
+# start the node 4
+echo "-- start nodes 4  (it knows only 3)"
+PAD_CONF=$PAD_CONF_34
+startFromTo 4 4
 
 echo "-- wait for the startup"
 sleep 10
@@ -23,7 +23,7 @@ do
 	java -jar target/pad-fs-cli.jar -p key2$i value2$i 
 done
 
-echo "-- put few new items both in [1,2] and [4,5]"
+echo "-- put few new items both in [1,2] and [4]"
 for i in {1..10}
 do
         java -jar target/pad-fs-cli.jar -p keyc$i valuec1$i -d ${node[1]} $port
@@ -35,7 +35,7 @@ sleep 10
 
 # start the nodes 3
 echo "-- start node 3 (it knows all the others)"
-PAD_CONF=$PAD_CONF_12345
+PAD_CONF=$PAD_CONF_1234
 start 3
 
 echo "-- wait for convergence"
@@ -96,6 +96,6 @@ do
 	[ "$NOT_FOUND" != "$str" ] && echo "keyc$i has been found: $str" && exit 1
 done
 
-shutdownFromTo 1 5
+shutdownFromTo $start $end
 echo "-- well done! :)"
 

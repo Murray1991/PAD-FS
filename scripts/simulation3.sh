@@ -50,6 +50,6 @@ do
 done
 
 # close properly the servers
-shutdownFromTo 1 5
+shutdownFromTo $start $end
 
 echo "-- well done! :)"

@@ -42,6 +42,6 @@ do
 done
 
 echo "-- time for get values: $runtime"
-shutdownFromTo 1 5
+shutdownFromTo $start $end
 
 echo "-- well done! :)"

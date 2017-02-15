@@ -10,9 +10,9 @@ port=9090
 # configuration files to set
 ## for the server
 PAD_CONF=resources/pad_fs.conf
-PAD_CONF_12345=./resources/pad_fs.conf
+PAD_CONF_1234=./resources/pad_fs.conf
 PAD_CONF_123=./resources/pad_fs1.conf
-PAD_CONF_345=./resources/pad_fs2.conf
+PAD_CONF_34=./resources/pad_fs2.conf
 ## for the client
 CONF=resources/nodes.conf
 
@@ -26,7 +26,6 @@ node[1]=127.0.0.1
 node[2]=127.0.0.2
 node[3]=127.0.0.3
 node[4]=127.0.0.4
-node[5]=127.0.0.5
 
 # start and end
 start=1
