@@ -58,12 +58,17 @@ public class StorageService implements IStorageService {
 		
 		//for versioning
 		this.vectorClock = new VectorClock();
-		this.vectorClock.incrementVersion(this.ID, System.currentTimeMillis());
+		if (localStore.size() == 0) {
+			this.vectorClock.incrementVersion(this.ID, System.currentTimeMillis());
+		} else { 
+			/* it merges all the versions present in the local store */
+			updateVectorClock();
+		}
 		
 		//resolve the client message and reads/writes from/into the DB
 		this.resolveHelper = new ResolveHelper(this, membershipService, localStore);
 	}
-	
+
 	/** default port = 3000 constructor */
 	public StorageService(IMembershipService membershipService, LocalStore localStore) {
 		this(membershipService, 3000, 1000, localStore);
@@ -214,5 +219,14 @@ public class StorageService implements IStorageService {
 		/* return the coordinator only if the message needs to be routed */
 		return coordinator != null && coordinator.equals(myself) ?
 				null : coordinator;		
+	}
+	
+	private void updateVectorClock() {
+		localStore.list().forEach( key -> {
+			localStore.get(key).forEach( value -> {
+				VectorClock clock = (VectorClock) value.getVersion();
+				vectorClock = vectorClock.merge(clock );
+			});
+		});
 	}
 }
