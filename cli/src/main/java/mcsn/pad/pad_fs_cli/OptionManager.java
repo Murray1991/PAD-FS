@@ -55,6 +55,7 @@ public class OptionManager {
         
         //key [value]
         put.setArgs(Option.UNLIMITED_VALUES);
+        dest.setArgs(Option.UNLIMITED_VALUES);
         
         options.addOption(interactive);
         options.addOption(config);
