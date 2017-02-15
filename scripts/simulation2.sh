@@ -13,7 +13,7 @@ PAD_CONF=$PAD_CONF_345
 startFromTo 4 5
 
 echo "-- wait for the startup"
-sleep 6
+sleep 10
 
 echo "-- put items in pad-fs"
 for i in {1..10}
@@ -58,6 +58,9 @@ done
 echo "-- shutdown node 1"
 shutdown 1
 
+echo "-- wait a little"
+sleep 6
+
 echo "-- remove the previous updates and the keys with multiple values"
 for i in {1..10}
 do
@@ -93,7 +96,6 @@ do
 	[ "$NOT_FOUND" != "$str" ] && echo "keyc$i has been found: $str" && exit 1
 done
 
+shutdownFromTo 1 5
 echo "-- well done! :)"
 
-# close properly the servers sending EOF signal
-shutdownFromTo 1 5

@@ -6,7 +6,7 @@ source scripts/configuration.sh
 startFromTo $start $end
 
 echo "-- wait for the startup"
-sleep 6
+sleep 10
 
 ## start test
 echo "-- sequence of updates"
@@ -49,7 +49,7 @@ do
 	[ "$NOT_FOUND" != "$str" ] && echo "key$i has been found: $str" && exit 1
 done
 
-# close properly the servers sending EOF signal
+# close properly the servers
 shutdownFromTo 1 5
 
 echo "-- well done! :)"

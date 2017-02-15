@@ -42,9 +42,9 @@ BUILD="$ENTER $MKDIR $CLEAN"
 
 function start {
     echo "start node[$1]"
-    PADFS="java -jar target/pad-fs.jar -p $DB_DIR -c $PAD_CONF"
+    PADFS="java -jar target/pad-fs.jar -p $DB_DIR -c $PAD_CONF --active"
     [ "$BIND_OPT" == "-b" ] && echo "$BIND_OPT option provided" && EXE="$PADFS -b ${node[$1]}"
-    FILE_LOG="-L log/node$1.log"
+    #FILE_LOG="-L log/node$1.log"
     SCREEN="screen $FILE_LOG -d -m -S node$1 -t -r $EXE"
     
     ssh ${node[$1]} "$BUILD $SCREEN"

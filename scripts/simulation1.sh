@@ -6,7 +6,7 @@ source scripts/configuration.sh
 startFromTo $start $end
 
 echo "-- wait for the startup"
-sleep 6
+sleep 10
 
 ## start test
 echo "-- put 60 items in pad-fs"
@@ -42,4 +42,6 @@ do
 done
 
 echo "-- time for get values: $runtime"
+shutdownFromTo 1 5
+
 echo "-- well done! :)"
