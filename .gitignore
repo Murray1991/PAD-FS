@@ -15,4 +15,7 @@ db/
 resources/pad_fs_nov.conf
 run_novello.sh
 ship_jars.sh
-
+*.db
+*.log
+*xterm.sh
+*_nov.*
