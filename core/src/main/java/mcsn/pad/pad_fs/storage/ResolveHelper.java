@@ -6,6 +6,8 @@ import java.net.SocketException;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.membership.IMembershipService;
 import mcsn.pad.pad_fs.message.ClientMessage;
@@ -31,6 +33,8 @@ import voldemort.versioning.Versioned;
 
 public class ResolveHelper {
 	
+    static final Logger logger = Logger.getLogger(ResolveHelper.class);
+
 	private IStorageService storageService;
 	private IMembershipService membershipService;
 	private LocalStore localStore;
@@ -110,6 +114,7 @@ public class ResolveHelper {
 			}
 			
 		} catch (SocketException e) {
+			logger.trace(e, e.getCause());
 		} finally {
 			if (sck != null)
 				sck.close();

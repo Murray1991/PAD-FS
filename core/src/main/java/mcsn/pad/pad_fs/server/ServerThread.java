@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
-import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 
@@ -52,7 +51,7 @@ public class ServerThread extends Thread {
 		
 		if (logger.isDebugEnabled()) {
 			logger.debug(this.getId() + "time elapsed to process message: " + TimeUnit.NANOSECONDS.toMillis(delta));
-			logger.debug(this.getId() + "client response's size: " + Utils.sizeof(msg));
+			//logger.debug(this.getId() + "client response's size: " + Utils.sizeof(msg));
 		}
 	}
 }

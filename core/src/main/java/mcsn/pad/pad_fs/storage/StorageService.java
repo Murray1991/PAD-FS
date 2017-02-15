@@ -6,8 +6,8 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
-import java.util.logging.Logger;
 
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 
 import mcsn.pad.pad_fs.membership.IMembershipService;
@@ -22,7 +22,7 @@ import voldemort.versioning.VectorClock;
 
 public class StorageService implements IStorageService {
 	
-	private final static Logger LOGGER = Logger.getLogger(StorageService.class.getName());
+	private final static Logger logger = Logger.getLogger(StorageService.class);
 	
 	private boolean isRunning = false;
 	private StorageManager storageManager;
@@ -76,7 +76,7 @@ public class StorageService implements IStorageService {
 
 	@Override
 	public void start() {
-		LOGGER.info(this + " -- start");
+		logger.info(this + " -- start");
 		State stateS = storageManager.getState();
 		State stateR = replicaManager.getState();
 		if (! stateS.equals(State.NEW) ) {
@@ -94,7 +94,7 @@ public class StorageService implements IStorageService {
 	
 	@Override
 	public void shutdown() {
-		LOGGER.info(this + " -- shutdown");
+		logger.info(this + " -- shutdown");
 		if (isRunning) {
 			isRunning = false;
 			replicaManager.interrupt();
@@ -158,7 +158,7 @@ public class StorageService implements IStorageService {
 		int attempts = 0;
 		
 		/* at least two attempts in case the coordinator is down */
-		while (++attempts < 2 && !success) {
+		while (attempts++ < 2 && !success) {
 			Member coordinator = toRoute(msg);
 			if (coordinator == null) {
 				/* the actual node is the coordinator or the message is not routable
@@ -176,9 +176,9 @@ public class StorageService implements IStorageService {
 					rcvMsg = (ClientMessage) transport.receive(5000).msg;
 					success = true;
 				} catch (SocketTimeoutException e) {
-					System.err.println(e.getMessage());
+					logger.trace(e, e.getCause());
 				} catch (IOException | ClassNotFoundException e) {
-					System.err.println(e.getMessage());
+					logger.trace(e, e.getCause());
 				} finally {
 					if (socket != null)
 						socket.close();

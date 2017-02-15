@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
-import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.message.ReplyMessage;
 import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
@@ -91,7 +90,7 @@ public class ReplyHandler implements Runnable {
 		if (logger.isTraceEnabled()) {
 			long delta = System.nanoTime() - start;
 			logger.trace(Thread.currentThread().getId() + "time elapsed to process reply message: " + TimeUnit.NANOSECONDS.toMillis(delta));
-			logger.trace(Thread.currentThread().getId() + "reply message's size: #bytes = " + Utils.sizeof(msg) + ", #keys = " + msg.keys.size());
+			//logger.trace(Thread.currentThread().getId() + "reply message's size: #bytes = " + Utils.sizeof(msg) + ", #keys = " + msg.keys.size());
 		}
 	}
 }
