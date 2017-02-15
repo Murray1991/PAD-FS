@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.log4j.Logger;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -169,14 +168,22 @@ public class ActiveMapDBStore extends LocalStore {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	public Iterable<Serializable> list() {
-		return map.keySet();
+
+		List<Serializable> keys = new ArrayList<>();
+		
+		map.forEach( (key, list) -> {
+			if (list.get(0).getValue() != null)
+				keys.add(key);
+		});
+		
+		return keys;
 	}
 	
 	@Override
 	public int size() {
+		
 		return map.keySet().size();
 	}
 	

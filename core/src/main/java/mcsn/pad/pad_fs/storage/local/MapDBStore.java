@@ -96,10 +96,16 @@ public class MapDBStore extends LocalStore {
 		put(key, new Versioned<byte[]>(null, vc));
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public Iterable<Serializable> list() {
-		return map.keySet();
+		List<Serializable> keys = new ArrayList<>();
+		
+		map.forEach( (key, list) -> {
+			if (list.get(0).getValue() != null)
+				keys.add(key);
+		});
+		
+		return keys;
 	}
 	
 	@Override

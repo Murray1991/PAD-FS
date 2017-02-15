@@ -60,7 +60,14 @@ public class HashMapStore extends LocalStore {
 
 	@Override
 	public Iterable<Serializable> list() {
-		return hmap.keySet();
+		List<Serializable> keys = new ArrayList<>();
+		
+		hmap.forEach( (key, list) -> {
+			if (list.get(0).getValue() != null)
+				keys.add(key);
+		});
+		
+		return keys;
 	}
 	
 	public int size() {
