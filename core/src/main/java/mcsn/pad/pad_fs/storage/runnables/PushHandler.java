@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
+import java.util.stream.Collectors;
 import org.apache.log4j.Logger;
 
 import mcsn.pad.pad_fs.common.Utils;
@@ -20,6 +20,7 @@ import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.transport.Transport;
+import voldemort.versioning.Version;
 import voldemort.versioning.Versioned;
 
 /**
@@ -70,10 +71,19 @@ public class PushHandler implements Runnable {
 				pullKeys.add(key);
 			} else if (occ == -1) {
 				replyMap.put(key, l2);
-			} else if (occ == 0 && !new HashSet<>(l2).containsAll(l1)) {
+			} else if (occ == 0) {
+				
 				/* add for the pull messages in order to ask the values 
 				 * and handle the concurrency case later in the ReplyHandler */
-				pullKeys.add(key);
+				HashSet<Version> hs = new HashSet<>( l2
+						.stream()
+						.map(v->v.getVersion())
+						.collect(Collectors.toList()) );
+				
+				/* add if at least one of the versions is not present in the local store */
+				if ( l1.stream().anyMatch(v -> !hs.contains(v.getVersion())) ) {
+					pullKeys.add(key);
+				}
 			}
 		}
 		

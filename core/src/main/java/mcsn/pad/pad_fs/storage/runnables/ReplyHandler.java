@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -14,6 +15,7 @@ import mcsn.pad.pad_fs.message.ReplyMessage;
 import mcsn.pad.pad_fs.message.SourceMessage;
 import mcsn.pad.pad_fs.storage.IStorageService;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
+import voldemort.versioning.Version;
 import voldemort.versioning.Versioned;
 
 /**
@@ -64,14 +66,27 @@ public class ReplyHandler implements Runnable {
 			Serializable key = replyKeys.get(i);
 			List<Versioned<byte[]>> l1 = replyValues.get(i);
 			List<Versioned<byte[]>> l2 = localStore.get(key);
-			if ( l2 == null || !new HashSet<>(l2).containsAll(l1) ) {
-				for (Versioned<byte[]> v : l1) {
+			
+			HashSet<Version> hs = new HashSet<>();
+			if ( l2 != null ) {
+				List<Version> versions = l2
+						.stream()
+						.map( v->v.getVersion() )
+						.collect(Collectors.toList());
+				hs.addAll(versions);
+			}
+			
+			/* add if at least one of the versions in l1 is not present in the local store */
+			for (Versioned<byte[]> v : l1) {
+				if (!hs.contains(v.getVersion())) {
 					keys.add(key);
 					values.add(v);
 				}
 			}
+			
 		}
 		
+		/* put all together in the store */
 		localStore.put(keys, values);
 		if (logger.isTraceEnabled()) {
 			long delta = System.nanoTime() - start;
