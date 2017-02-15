@@ -1,33 +1,24 @@
 package mcsn.pad.pad_fs.storage;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.lang.Thread.State;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.List;
-import java.util.Vector;
 import java.util.logging.Logger;
 
 import org.junit.Assert;
 
-import mcsn.pad.pad_fs.common.Utils;
 import mcsn.pad.pad_fs.membership.IMembershipService;
 import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.Message;
-import mcsn.pad.pad_fs.message.client.GetMessage;
-import mcsn.pad.pad_fs.message.client.ListMessage;
-import mcsn.pad.pad_fs.message.client.PutMessage;
 import mcsn.pad.pad_fs.message.client.RemoveMessage;
 import mcsn.pad.pad_fs.message.client.RoutableClientMessage;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.transport.Transport;
 import voldemort.versioning.VectorClock;
-import voldemort.versioning.Versioned;
 
 public class StorageService implements IStorageService {
 	
@@ -49,21 +40,28 @@ public class StorageService implements IStorageService {
 
 	private int updateInterval;
 
+	private ResolveHelper resolveHelper;
+
 	public StorageService(IMembershipService membershipService, int port, int interval, LocalStore localStore) {
 		this.storageManagerPort = port;
 		this.updateInterval = interval;
 		this.membershipService = membershipService;
 		this.localStore = localStore;
 		this.host = membershipService.getMyself().host;
-		storageManager = new StorageManager(this, host, storageManagerPort);
-		replicaManager = new ReplicaManager(this, membershipService, 1000, host, storageManagerPort);
+		this.storageManager = new StorageManager(
+				this, host, storageManagerPort);
+		this.replicaManager = new ReplicaManager(
+				this, membershipService, 1000, host, storageManagerPort);
 		
 		//TODO Maybe better way to get an ID
 		this.ID = Math.abs(host.hashCode()) % Short.MAX_VALUE;
 		
-		//Vector clock...
+		//for versioning
 		this.vectorClock = new VectorClock();
 		this.vectorClock.incrementVersion(this.ID, System.currentTimeMillis());
+		
+		//resolve the client message and reads/writes from/into the DB
+		this.resolveHelper = new ResolveHelper(this, membershipService, localStore);
 	}
 	
 	/** default port = 3000 constructor */
@@ -103,72 +101,6 @@ public class StorageService implements IStorageService {
 	@Override
 	public boolean isRunning() {
 		return isRunning;
-	}
-
-	@Override
-	public ClientMessage deliverMessage(ClientMessage msg) {
-		
-		/* check if it's routable */
-		Member myself = membershipService.getMyself();
-		Member coordinator = null;
-		if ( msg instanceof RoutableClientMessage ) {
-			RoutableClientMessage rmsg = (RoutableClientMessage) msg;
-			String key = (String) rmsg.key;
-			coordinator = membershipService.getCoordinator(key);
-			Assert.assertNotNull(coordinator);
-		}
-		
-		/* check if it's a remove message and its multicast property */
-		boolean isRemove = false;
-		boolean multicast = false;
-		if ( msg instanceof RemoveMessage ) {
-			isRemove = true;
-			multicast = ((RemoveMessage) msg).multicast;
-		}
-		
-		/* resolve the message or route to the coordinator */
-		ClientMessage rcvMsg = null;
-		if (coordinator != null && coordinator.equals(myself) || coordinator == null || isRemove && !multicast) {
-			/* case msg is a LIST or a REMOVE without multicast 
-			 * or the actual node is the coordinator for the key */
-			resolveMessage(msg);
-			rcvMsg = msg;
-			
-		} else {
-			/* case msg is a RoutableMessage and the actual node 
-			 * is not the coordinator for this key */
-			DatagramSocket socket = null;
-			try {
-				
-				socket = new DatagramSocket();
-				Transport transport = new Transport(socket, this);
-				transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort));
-				try {
-					
-					/* receive with timeout */
-					rcvMsg = (ClientMessage) transport.receive(5000).msg;
-					
-				} catch (SocketTimeoutException e) {
-					
-					System.err.println("Timeout: request not handled");
-					rcvMsg = msg;
-					rcvMsg.status = Message.ERROR;
-					
-				}
-				
-			} catch (IOException | ClassNotFoundException e) {
-				
-				System.err.println(e.getMessage());
-				rcvMsg = msg;
-				rcvMsg.status = Message.ERROR;
-				
-			} finally {
-				if (socket != null) 
-					socket.close();
-			}
-		}
-		
-		return rcvMsg;
 	}
 	
 	@Override
@@ -214,95 +146,73 @@ public class StorageService implements IStorageService {
 	public InetAddress getStorageAddress() {
 		return storageManager.getStorageAddress();
 	}
+
+	public ClientMessage deliverMessage(ClientMessage msg) {
+		ClientMessage rcvMsg = null;
+		boolean success = false;
+		int attempts = 0;
+		
+		/* at least two attempts in case the coordinator is down */
+		while (++attempts < 2 && !success) {
+			Member coordinator = toRoute(msg);
+			if (coordinator == null) {
+				/* the actual node is the coordinator or the message is not routable
+				 * or the message is a remove message with multicast field set to false*/
+				resolveHelper.resolveMessage(msg);
+				rcvMsg = msg;
+				success = true;
+			} else {
+				/* routable message but the actual node is not the coordinator */
+				DatagramSocket socket = null;
+				try {
+					socket = new DatagramSocket();
+					Transport transport = new Transport(socket, this);
+					transport.send(msg, new InetSocketAddress(coordinator.host, storageManagerPort));
+					rcvMsg = (ClientMessage) transport.receive(5000).msg;
+					success = true;
+				} catch (SocketTimeoutException e) {
+					System.err.println(e.getMessage());
+				} catch (IOException | ClassNotFoundException e) {
+					System.err.println(e.getMessage());
+				} finally {
+					if (socket != null)
+						socket.close();
+				}
+			}
+		}
+		
+		if (!success) {
+			rcvMsg = msg;
+			rcvMsg.status = Message.ERROR;
+		}
+		
+		return rcvMsg;
+	}
 	
 	@Override
 	public String toString() {
 		return "[StorageService@"+ this.membershipService.getMyself().id + "@" + getID() + "]";
 	}
 	
-	private void resolveMessage(ClientMessage msg) {
-		
-		msg.status = Message.UNKNOWN;
-		
-		switch (msg.type) {
-		
-			case Message.GET:
-				handleGet((GetMessage) msg);
-				break;
-			
-			case Message.PUT:
-				handlePut((PutMessage) msg);
-				break;
-				
-			case Message.REMOVE:
-				handleRemove((RemoveMessage) msg);
-				break;
-				
-			case Message.LIST:
-				handleList((ListMessage) msg);
-				break;
-				
-			default:
-				msg.status = Message.ERROR;
-			}
-		
-		if (msg.status == Message.UNKNOWN)
-			msg.status = Message.SUCCESS;
-		
-	}
-	
-	private void handleGet(GetMessage msg) {
-		List<Versioned<byte[]>> values = localStore.get(msg.key);
-		if (values != null && values.get(0).getValue() != null) {
-			msg.values = new Vector<>();
-			msg.values.addAll(values);
-		} else {
-			msg.status = Message.NOT_FOUND;
+	private Member toRoute(ClientMessage msg) {
+		Member myself = membershipService.getMyself();
+		Member coordinator = null;
+		/* check if it's a remove message and its multicast property */
+		boolean isRemove = false;
+		boolean multicast = false;
+		if ( msg instanceof RemoveMessage ) {
+			isRemove = true;
+			multicast = ((RemoveMessage) msg).multicast;
 		}
-	}
-	
-	/* only the coordinator put the version in the local store. */	
-	private void handlePut(PutMessage msg) {
-		msg.value = new Versioned<byte[]>(
-				msg.value.getValue(), 
-				incrementVectorClock());
-		localStore.put(msg.key, msg.value);
-	}
-	
-	/* remove only if the msg's version is greater than the local value's
-	 * version but multicast anyway if "multicast" flag is true, only the
-	 * coordinator can receive the packet with removeFlag setted to true */
-	private void handleRemove(RemoveMessage msg) {
-		
-		//TODO incrementVectorClock only iff the associated version is empty
-		msg.value = (msg.multicast) ? new Versioned<byte[]>(msg.value.getValue(), 
-				incrementVectorClock()) : msg.value;
-
-		List<Versioned<byte[]>> l2 = localStore.get(msg.key);
-		Versioned<byte[]> v1 = msg.value;
-		Versioned<byte[]> v2 = l2 != null ? l2.get(0) : null;
-		
-		if ( Utils.compare(v1, v2) == 1 ) {
-			VectorClock vc = (VectorClock) msg.value.getVersion();
-			localStore.remove(msg.key, vc);
+		/* compute the coordinator only if it's a routable message 
+		 * or the multicast field of remove message is set to false */
+		if ( msg instanceof RoutableClientMessage && !(isRemove && !multicast)) {
+			String key = (String) ((RoutableClientMessage) msg).key;
+			coordinator = membershipService.getCoordinator(key);
+			Assert.assertNotNull(coordinator);
 		}
-		
-		if (msg.multicast) {
-			msg.multicast = false;
-			DatagramSocket sck = null;
-			try {
-				sck = new DatagramSocket();
-				new Transport(sck, this).multicast(msg, membershipService.getMembers());
-			} catch (SocketException e) {
-			} finally {
-				if (sck != null)
-					sck.close();
-			}
-		}
-	}
-	
-	private void handleList(ListMessage msg) {
-		for (Serializable key : localStore.list())
-			msg.addKey(key);
+		/* return the coordinator only if the message needs to be routed */
+		return coordinator != null && coordinator.equals(myself) ?
+				null : coordinator;		
 	}
 }

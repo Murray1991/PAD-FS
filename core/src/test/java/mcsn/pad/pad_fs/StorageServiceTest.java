@@ -179,7 +179,7 @@ public class StorageServiceTest {
 		/* select keys to remove */
 		Random rand = new Random();
 		keys.removeIf( k -> rand.nextInt(10) < 5);
-	
+		
 		System.out.println("-- remove some keys");
 		TestUtils.createMessages(Message.REMOVE, keys)
 		.forEach( (key, msg) -> {	
@@ -187,6 +187,10 @@ public class StorageServiceTest {
 			StorageService ss = (StorageService) sServices.get(idx);
 			ClientMessage res = ss.deliverMessage(msg);
 			Assert.assertTrue(res.status == Message.SUCCESS);
+		});
+		
+		Thread.sleep(2000);
+		keys.forEach( key -> {
 			boolean match = lStores.stream().allMatch( ls -> isEmpty( ls.get(key) ) );
 			Assert.assertTrue(match);
 		});

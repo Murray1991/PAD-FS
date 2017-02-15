@@ -6,7 +6,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.List;
 
-import junit.framework.Assert;
 import mcsn.pad.pad_fs.membership.Member;
 import mcsn.pad.pad_fs.message.ClientMessage;
 import mcsn.pad.pad_fs.message.InternalMessage;
@@ -121,12 +120,8 @@ public class Transport {
 				count++;
 			} 
 		}
-		Assert.assertTrue(count == 0);
-		for (int i = 0; i < members.size(); i++) {
-			try {
-				receive();
-			} catch (IOException | ClassNotFoundException e) {
-			}
+		if (count != 0) {
+			System.err.println("insuccessfull multicast");
 		}
 	}
 	
