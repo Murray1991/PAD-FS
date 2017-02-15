@@ -22,6 +22,7 @@ import org.apache.log4j.PropertyConfigurator;
 import org.json.JSONException;
 
 import mcsn.pad.pad_fs.membership.Member;
+import mcsn.pad.pad_fs.storage.local.ActiveMapDBStore;
 import mcsn.pad.pad_fs.storage.local.HashMapStore;
 import mcsn.pad.pad_fs.storage.local.LocalStore;
 import mcsn.pad.pad_fs.storage.local.MapDBStore;
@@ -48,12 +49,14 @@ public class NodeRunner {
 		Option bindAddr = new Option("b", "bindaddr", true, "binding address");
 		Option path = new Option("p", "path", true, "the path in which store/retrieve the DBs");
 		Option hmStore = new Option("h", "hmstore", false, "specifies to use the in-memory HashMap store");
+		Option activeStore = new Option("a", "active", false, "specifies to use the ActiveMapDBStore store");
 		Option help = new Option("help", "help", false, "help print");
 		
 		options.addOption(config);
 		options.addOption(bindAddr);
 		options.addOption(path);
 		options.addOption(hmStore);
+		options.addOption(activeStore);
 		options.addOption(help);
 		
 		CommandLineParser parser = new DefaultParser();
@@ -99,6 +102,8 @@ public class NodeRunner {
 		Class<? extends LocalStore> storeClass = MapDBStore.class;
 		if (cmd.hasOption(hmStore.getOpt()))
 			storeClass = HashMapStore.class;
+		if (cmd.hasOption(activeStore.getOpt()))
+			storeClass = ActiveMapDBStore.class;
 		
 		if (addr != null) {
 			padNode = new Node(addr, configFile, dirPath, storeClass);
