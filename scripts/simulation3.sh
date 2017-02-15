@@ -26,10 +26,10 @@ done
 echo "-- shutdown node 1"
 shutdown 1
 
-sleep 1
+sleep 2
 
 echo "-- remove all keys"
-for i in {1..8}
+for i in {0..8}
 do
 	java -jar target/pad-fs-cli.jar -r key$i -c $CONF
 done
@@ -41,7 +41,7 @@ echo "-- wait for convergence"
 sleep 10
 
 echo "-- check if all values have been removed"
-for i in {1..8}
+for i in {0..8}
 do
 	NOT_FOUND="Your request is not present in the pad-fs system"
 	str=$( java -jar target/pad-fs-cli.jar -g key$i )
