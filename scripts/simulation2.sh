@@ -13,7 +13,7 @@ PAD_CONF=$PAD_CONF_34
 startFromTo 4 4
 
 echo "-- wait for the startup"
-sleep 10
+sleep 5
 
 echo "-- put items in pad-fs"
 for i in {1..10}
@@ -30,23 +30,19 @@ do
         java -jar target/pad-fs-cli.jar -p keyc$i valuec4$i -d ${node[4]} $port
 done
 
-echo "-- wait for convergence"
-sleep 10
-
-# start the nodes 3
-echo "-- start node 3 (it knows all the others)"
+echo "-- start node 3 (it knows all the other nodes)"
 PAD_CONF=$PAD_CONF_1234
 start 3
 
 echo "-- wait for convergence"
-sleep 20
+sleep 15
 
 echo "-- check if keys with conflicts are present"
 for i in {1..10}
 do
     var=($(java -jar target/pad-fs-cli.jar -g keyc$i -c $CONF))
-    [ "${var[0]}" != "valuec1$i" ] && [ "${var[1]}" != "valuec1$i" ] && echo "error for [ ${var[0]}, ${var[1]} ]" && exit 1
-    [ "${var[0]}" != "valuec4$i" ] && [ "${var[1]}" != "valuec4$i" ] && echo "error for [ ${var[0]}, ${var[1]} ]" && exit 1
+    [ "${var[0]}" != "valuec1$i" ] && [ "${var[1]}" != "valuec1$i" ] && echo "error for keyc$i [ ${var[0]}, ${var[1]} ]" && exit 1
+    [ "${var[0]}" != "valuec4$i" ] && [ "${var[1]}" != "valuec4$i" ] && echo "error for keyc$i [ ${var[0]}, ${var[1]} ]" && exit 1
 done
 
 echo "-- update some values"
@@ -59,7 +55,7 @@ echo "-- shutdown node 1"
 shutdown 1
 
 echo "-- wait a little"
-sleep 6
+sleep 3
 
 echo "-- remove the previous updates and the keys with multiple values"
 for i in {1..10}
@@ -68,14 +64,11 @@ do
 	java -jar target/pad-fs-cli.jar -r keyc$i -c $CONF
 done
 
-echo "-- wait few seconds"
-sleep 5
-
 echo "-- restart node 1"
 start 1
 
-echo "-- wait for convergence"
-sleep 20
+echo "-- wait for detection and update"
+sleep 15
 
 echo "-- get messages"
 for i in {1..10}

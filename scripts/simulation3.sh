@@ -6,7 +6,7 @@ source scripts/configuration.sh
 startFromTo $start $end
 
 echo "-- wait for the startup"
-sleep 10
+sleep 5
 
 ## start test
 echo "-- sequence of updates"
@@ -25,7 +25,6 @@ done
 
 echo "-- shutdown node 1"
 shutdown 1
-
 sleep 2
 
 echo "-- remove all keys"
@@ -44,7 +43,7 @@ echo "-- check if all values have been removed"
 for i in {0..8}
 do
 	NOT_FOUND="Your request is not present in the pad-fs system"
-	str=$( java -jar target/pad-fs-cli.jar -g key$i )
+	str=$( java -jar target/pad-fs-cli.jar -g key$i -c $CONF )
 	
 	[ "$NOT_FOUND" != "$str" ] && echo "key$i has been found: $str" && exit 1
 done
