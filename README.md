@@ -19,15 +19,15 @@ After the installation phase all the jar executable files will be in `target` di
 ##### Run a node of the system
 * `java -jar target/pad-fs.jar [-b <binding-addr>] [-c <config-file>] [-p <path for the local DB>]`
 
-If the binding address is not provided the program will use the address associated to the hostname of the machine. If the configuration file is not provided the program will check `./pad_fs.config` file if present. If the path is not provided the program will use/create the DB in current directory
+If the binding address is not provided the program will use the address associated to the hostname of the machine. If the configuration file is not provided the program will check `./pad_fs.conf` file if present. If the path is not provided the program will use/create the DB in current directory.
 
 ##### Run the client
-* `java -jar target/pad-fs-cli.jar {-p <key> [<value>] | -g <key> | -r <key> | -l } [-d <dest-addr> | -c <config-file>] [-o <output>]`
+* `java -jar target/pad-fs-cli.jar {-p <key> [<value>] | -g <key> | -r <key> | -l } [-d <server-dest-addr> <server-dest-port> | -c <config-file>] [-o <output>]`
 
 The options `-p`, `-g`, `-r` and `-l` respectively refer to the basic operation *put*, *get*, *remove* and *list*. The option `-o` specifies the output file in which to store a get response, if it's not provided the response's value will be printed in the standard output.  If the destination address or the configuration file are not provided, the program will check `./nodes.conf`, a file in which are stored the IP addresses of the PAD-FS nodes.
 
 #### Configuration files
-Examples of the configuration files for the client and a server are respectively `nodes.conf` for the client and `pad_fs.conf` for the server, both present in the root directory of the project.
+Examples of the configuration files for the client and a server are respectively `nodes.conf` for the client and `pad_fs.conf` for the server, both present in the root directory of the project. The `storage_port` field in `pad_fs.conf` must be equal for each node in the system.
 
 #### Replicated architecture implementation
 Passive replication protocol:
@@ -37,4 +37,7 @@ Passive replication protocol:
 In case of node failures or network partitions, the election of the primary server is based on the partitioning of data through consistency hashing. This guarantees high-availability.
 
 #### TODO list
-* push interval should be configured by the user in pad_fs.conf 
+* thresholds in `ActiveMapDBStore` should be configurable by the admin or adaptive in some way
+* timeout in receiving back a client request forwarded to the master should be configurable or set properly in function of failure-detection time 
+* also the number of attempts before giving to the client a NOT_FOUND response should be configurable
+* configuration files are terrible in my opinion
