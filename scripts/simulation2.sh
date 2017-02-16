@@ -18,9 +18,9 @@ sleep 10
 echo "-- put items in pad-fs"
 for i in {1..10}
 do
-	java -jar target/pad-fs-cli.jar -p key0$i value0$i
-	java -jar target/pad-fs-cli.jar -p key1$i value1$i
-	java -jar target/pad-fs-cli.jar -p key2$i value2$i 
+	java -jar target/pad-fs-cli.jar -p key0$i value0$i -c $CONF
+	java -jar target/pad-fs-cli.jar -p key1$i value1$i -c $CONF
+	java -jar target/pad-fs-cli.jar -p key2$i value2$i -c $CONF 
 done
 
 echo "-- put few new items both in [1,2] and [4]"
@@ -44,7 +44,7 @@ sleep 20
 echo "-- check if keys with conflicts are present"
 for i in {1..10}
 do
-    var=($(java -jar target/pad-fs-cli.jar -g keyc$i))
+    var=($(java -jar target/pad-fs-cli.jar -g keyc$i -c $CONF))
     [ "${var[0]}" != "valuec1$i" ] && [ "${var[1]}" != "valuec1$i" ] && echo "error for [ ${var[0]}, ${var[1]} ]" && exit 1
     [ "${var[0]}" != "valuec4$i" ] && [ "${var[1]}" != "valuec4$i" ] && echo "error for [ ${var[0]}, ${var[1]} ]" && exit 1
 done
@@ -52,7 +52,7 @@ done
 echo "-- update some values"
 for i in {1..10}
 do
-	java -jar target/pad-fs-cli.jar -p key1$i value11$i
+	java -jar target/pad-fs-cli.jar -p key1$i value11$i -c $CONF
 done
 
 echo "-- shutdown node 1"
@@ -64,8 +64,8 @@ sleep 6
 echo "-- remove the previous updates and the keys with multiple values"
 for i in {1..10}
 do
-	java -jar target/pad-fs-cli.jar -r key1$i
-	java -jar target/pad-fs-cli.jar -r keyc$i
+	java -jar target/pad-fs-cli.jar -r key1$i -c $CONF
+	java -jar target/pad-fs-cli.jar -r keyc$i -c $CONF
 done
 
 echo "-- wait few seconds"
@@ -80,19 +80,19 @@ sleep 20
 echo "-- get messages"
 for i in {1..10}
 do
-	str=$( java -jar target/pad-fs-cli.jar -g key0$i )
+	str=$( java -jar target/pad-fs-cli.jar -g key0$i -c $CONF )
 	[ "value0$i" != "$str" ] && echo "error for $str != value0$i" && exit 1
 	
-	str=$( java -jar target/pad-fs-cli.jar -g key2$i )
+	str=$( java -jar target/pad-fs-cli.jar -g key2$i -c $CONF )
 	[ "value2$i" != "$str" ] && echo "error for $str != value2$i" && exit 1
 	
 	# the message for a string not found
         NOT_FOUND="Your request is not present in the pad-fs system"
         
-	str=$( java -jar target/pad-fs-cli.jar -g key1$i )
+	str=$( java -jar target/pad-fs-cli.jar -g key1$i -c $CONF )
 	[ "$NOT_FOUND" != "$str" ] && echo "key1$i has been found: $str" && exit 1
 	
-	str=$( java -jar target/pad-fs-cli.jar -g keyc$i )
+	str=$( java -jar target/pad-fs-cli.jar -g keyc$i -c $CONF )
 	[ "$NOT_FOUND" != "$str" ] && echo "keyc$i has been found: $str" && exit 1
 done
 
