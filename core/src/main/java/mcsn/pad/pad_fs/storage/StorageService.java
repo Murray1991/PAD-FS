@@ -158,17 +158,19 @@ public class StorageService implements IStorageService {
 		int attempts = 0;
 		
 		/* at least two attempts in case the coordinator is down */
-		while (attempts++ < 2 && !success) {
+		while (attempts++ < 10 && !success) {
 			Member coordinator = toRoute(msg);
 			if (coordinator == null) {
 				/* the actual node is the coordinator or the message is not routable
 				 * or the message is a remove message with multicast field set to false*/
+				logger.debug("I'M THE MASTER FOR KEY " + ((RoutableClientMessage) msg).key);
 				resolveHelper.resolveMessage(msg);
 				rcvMsg = msg;
 				success = true;
 			} else {
 				/* routable message but the actual node is not the coordinator */
 				DatagramSocket socket = null;
+				logger.debug("FORWARD KEY " + ((RoutableClientMessage) msg).key + " TO " + coordinator.host);
 				try {
 					socket = new DatagramSocket();
 					Transport transport = new Transport(socket, this);
